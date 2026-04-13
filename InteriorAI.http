@@ -1,0 +1,6 @@
+@InteriorAI_HostAddress = http://localhost:5207
+
+GET {{InteriorAI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
