@@ -6,8 +6,9 @@ InteriorAI.API/
     ├── Services/                 # Chứa logic nghiệp vụ và gọi API ngoài
     │   ├── AuthManager.cs        # Xử lý đăng nhập, cấp JWT
     │   ├── DesignManager.cs      # Logic lưu ảnh, gọi AI, cập nhật trạng thái
-    │   └── ReplicateClient.cs    # Triển khai gọi API Replicate/Leonardo
+    │   └── ExternalAI.cs         # Triển khai gọi API Gemini
     ├── Data/                     # AppDbContext và Migrations
     ├── Extensions/               # ServiceCollectionExtensions (setup JWT, CORS)
     ├── appsettings.json
     └── Program.cs
+    http://localhost:5207/swagger/index.html
