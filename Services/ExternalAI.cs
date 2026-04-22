@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
-
+using SixLabors.ImageSharp.Processing;
 namespace InteriorAI.Services;
 
 public interface IExternalAIService
@@ -30,7 +30,6 @@ public class ExternalAI : IExternalAIService
         _logger = logger;
 
         _apiKey = _configuration["Gemini:ApiKey"] ?? throw new ArgumentNullException("Gemini API Key is missing.");
-        // Sử dụng model chuẩn xác định của Google AI Studio
         _model = _configuration["Gemini:Model"] ?? "gemini-3.0-flash";
         _nanoBananaApiKey = _configuration["NanoBanana:ApiKey"] ?? "";
     }
@@ -38,7 +37,7 @@ public class ExternalAI : IExternalAIService
     private async Task<T> RetryWithBackoffAsync<T>(Func<Task<T>> operation, int maxRetries = 3)
     {
         int retryCount = 0;
-        int delayMs = 1000; // Start with 1 second
+        int delayMs = 1000;
 
         while (true)
         {
@@ -57,9 +56,48 @@ public class ExternalAI : IExternalAIService
 
                 _logger.LogWarning($"Retrying operation (attempt {retryCount}) after {delayMs}ms due to: {ex.Message}");
                 await Task.Delay(delayMs);
-                delayMs = (int)(delayMs * 1.5); // Exponential backoff
+                delayMs = (int)(delayMs * 1.5);
             }
         }
+    }
+
+    // Upload ảnh lên ImgBB 
+    private async Task<string> UploadImageToImgBBAsync(string base64Image)
+    {
+        // Đọc trực tiếp từ appsettings.json
+        var apiKey = _configuration["ImgBB:ApiKey"];
+        if (string.IsNullOrEmpty(apiKey))
+        {
+            throw new Exception("Thiếu cấu hình ImgBB:ApiKey trong appsettings.json.");
+        }
+
+        var url = $"https://api.imgbb.com/1/upload?key={apiKey}";
+
+        var content = new FormUrlEncodedContent(new[]
+        {
+            new KeyValuePair<string, string>("image", base64Image)
+        });
+
+        _logger.LogInformation("Đang upload ảnh lên ImgBB...");
+        var response = await _httpClient.PostAsync(url, content);
+        var responseString = await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new Exception($"Lỗi upload ImgBB: {responseString}");
+        }
+
+        using var document = JsonDocument.Parse(responseString);
+        var root = document.RootElement;
+
+        if (root.TryGetProperty("data", out var data) && data.TryGetProperty("url", out var imageUrlElement))
+        {
+            var publicUrl = imageUrlElement.GetString()!;
+            _logger.LogInformation($"Upload thành công! URL: {publicUrl}");
+            return publicUrl;
+        }
+
+        throw new Exception("Không lấy được URL từ response của ImgBB.");
     }
 
     public async Task<string> AnalyzeRoomAndGetDesignPromptAsync(string base64Image, string style)
@@ -68,16 +106,7 @@ public class ExternalAI : IExternalAIService
         {
             var url = $"https://generativelanguage.googleapis.com/v1beta/models/{_model}:generateContent?key={_apiKey}";
 
-            // Tối ưu prompt: Đóng vai chuyên gia, ép giữ nguyên cấu trúc và thêm từ khóa Render 2K/8K siêu thực
-            var systemPrompt = $@"You are an expert interior designer and AI prompt engineer. 
-Analyze the provided image of a room carefully. Your goal is to generate a highly detailed prompt for an AI image generator to redesign this room in the '{style}' style.
-CRITICAL INSTRUCTIONS:
-1. Describe the exact structural layout of the room in the image (walls, windows, doors, main furniture placement) so the AI generator keeps the same structure.
-2. Apply the '{style}' design style to the room, describing specific materials, colors, lighting, and decor elements suitable for this style.
-3. Keep the prompt in English.
-4. Add these keywords at the end of the prompt for maximum realism: photorealistic, 8k resolution, architectural photography, highly detailed, unreal engine 5 render, volumetric lighting --iw 2.0
-Only return the prompt text, nothing else.";
-
+            var systemPrompt =$"{style}";
 
             var payload = new
             {
@@ -109,28 +138,16 @@ Only return the prompt text, nothing else.";
             if (!response.IsSuccessStatusCode)
             {
                 var errorDetail = await response.Content.ReadAsStringAsync();
-                if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
-                {
-                    throw new Exception($"Rate limit exceeded. Please try again later: {errorDetail}");
-                }
-                throw new Exception($"Gemini Analysis API failed: {errorDetail}");
+                throw new Exception($"Gemini API failed: {errorDetail}");
             }
 
             var responseString = await response.Content.ReadAsStringAsync();
             using var document = JsonDocument.Parse(responseString);
             var root = document.RootElement;
 
-            // Bóc tách JSON an toàn (Tránh Crash do Safety Block)
             if (root.TryGetProperty("candidates", out var candidates) && candidates.GetArrayLength() > 0)
             {
                 var firstCandidate = candidates[0];
-
-                // Kiểm tra xem AI có từ chối trả lời vì lý do an toàn không
-                if (firstCandidate.TryGetProperty("finishReason", out var finishReason) && finishReason.GetString() == "SAFETY")
-                {
-                    throw new Exception("Ảnh tải lên vi phạm chính sách an toàn của Google (ví dụ: chứa người).");
-                }
-
                 if (firstCandidate.TryGetProperty("content", out var contentElement) &&
                     contentElement.TryGetProperty("parts", out var parts) &&
                     parts.GetArrayLength() > 0 &&
@@ -150,19 +167,48 @@ Only return the prompt text, nothing else.";
         {
             var generateUrl = "https://api.nanobananaapi.ai/api/v1/nanobanana/generate-2";
 
-            // Bước 1: Gửi yêu cầu tạo ảnh
-            // Giải mã base64 để lấy kích thước ảnh
-            using var image = Image.Load(Convert.FromBase64String(base64Image));
+            // Bước 1: Nén ảnh để upload lên ImgBB
+            var imageBytes = Convert.FromBase64String(base64Image);
 
-            // Tính toán Aspect Ratio (Tỷ lệ khung hình) để truyền vào prompt cho Midjourney/NanoBanana
-            var finalPrompt = $"{prompt} --ar {image.Width}:{image.Height}";
+            // 1.1 Tách riêng việc lấy Format (để lúc sau Save lại đúng chuẩn)
+            var format = Image.DetectFormat(imageBytes);
 
+            // 1.2 Load ảnh vào bộ nhớ 
+            using var image = Image.Load(imageBytes);
+
+            if (image.Width > 1024 || image.Height > 1024)
+            {
+                image.Mutate(x => x.Resize(new ResizeOptions
+                {
+                    Mode = ResizeMode.Max, 
+                    Size = new Size(1024, 1024)
+                }));
+            }
+
+            using var ms = new MemoryStream();
+            // 1.3 Lưu lại ảnh bằng format gốc đã nhận diện 
+            if (format != null)
+            {
+                image.Save(ms, format);
+            }
+            else
+            {
+                image.SaveAsJpeg(ms); 
+            }
+
+            var optimizedBase64 = Convert.ToBase64String(ms.ToArray());
+
+            // Bước 2: Upload lấy link Public
+            var publicImageUrl = await UploadImageToImgBBAsync(optimizedBase64);
+
+            // Bước 3: Tạo payload chuẩn của NanoBanana với link ảnh vừa lấy được
             var payload = new
             {
-                prompt = finalPrompt,
-                type = "IMAGETOIMAGE",
-                numImages = 1,
-                base64Array = new[] { "data:image/jpeg;base64," + base64Image }
+                prompt = prompt,
+                imageUrls = new[] { publicImageUrl }, 
+                aspectRatio = "auto",                 
+                resolution = "1K",                   
+                outputFormat = "jpg"
             };
 
             var jsonPayload = JsonSerializer.Serialize(payload, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull });
@@ -176,124 +222,58 @@ Only return the prompt text, nothing else.";
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _nanoBananaApiKey);
             }
 
-            _logger.LogInformation($"Sending image generation request to {generateUrl}");
+            _logger.LogInformation("Gửi yêu cầu tạo ảnh đến NanoBanana...");
             var response = await _httpClient.SendAsync(request);
 
             if (!response.IsSuccessStatusCode)
             {
                 var errorDetail = await response.Content.ReadAsStringAsync();
-                _logger.LogError($"NanoBanana API error: {response.StatusCode} - {errorDetail}");
-                throw new Exception($"Image generation failed: {errorDetail}");
+                throw new Exception($"NanoBanana API lỗi HTTP {response.StatusCode}: {errorDetail}");
             }
 
             var responseString = await response.Content.ReadAsStringAsync();
-            _logger.LogInformation($"NanoBanana response: {responseString}");
-
             using var document = JsonDocument.Parse(responseString);
             var root = document.RootElement;
 
-            // Kiểm tra code response trước
             if (root.TryGetProperty("code", out var codeElement) && codeElement.GetInt32() != 200)
             {
-                var errorMsg = "Unknown error";
-                if (root.TryGetProperty("msg", out var msgElement))
-                {
-                    errorMsg = msgElement.GetString() ?? "Unknown error";
-                }
-                throw new Exception($"NanoBanana API error (code {codeElement.GetInt32()}): {errorMsg}");
+                var msg = root.TryGetProperty("message", out var msgElement) ? msgElement.GetString() : "Unknown error";
+                throw new Exception($"NanoBanana từ chối (code {codeElement.GetInt32()}): {msg}");
             }
 
-            // Trích xuất taskId từ response
-            string? taskId = null;
+            string taskId = root.GetProperty("data").GetProperty("taskId").GetString()!;
+            _logger.LogInformation($"Task tạo ảnh ID: {taskId}. Đang chờ kết quả...");
 
-            if (root.TryGetProperty("data", out var dataElement) && dataElement.ValueKind == JsonValueKind.Object)
-            {
-                if (dataElement.TryGetProperty("taskId", out var taskIdElement))
-                {
-                    taskId = taskIdElement.GetString();
-                }
-            }
-
-            if (string.IsNullOrEmpty(taskId))
-            {
-                _logger.LogError($"Invalid response structure. Full response: {responseString}");
-                throw new Exception("Failed to get taskId from NanoBanana API response. Data: " + responseString);
-            }
-
-            _logger.LogInformation($"Task created with ID: {taskId}. Polling for completion...");
-
-            // Bước 2: Poll cho đến khi tác vụ hoàn thành
+            // Bước 4: Polling kết quả
             var recordInfoUrl = "https://api.nanobananaapi.ai/api/v1/nanobanana/record-info";
-            var maxPolls = 60; // 60 * 5 seconds = 300 seconds (5 phút)
-            var pollCount = 0;
-
-            while (pollCount < maxPolls)
+            for (int i = 0; i < 60; i++)
             {
-                await Task.Delay(5000); // Chờ 5 giây trước poll
-                pollCount++;
-
+                await Task.Delay(5000);
                 var pollRequest = new HttpRequestMessage(HttpMethod.Get, $"{recordInfoUrl}?taskId={taskId}");
                 pollRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _nanoBananaApiKey);
 
-                var pollResponse = await _httpClient.SendAsync(pollRequest);
-                var pollResponseString = await pollResponse.Content.ReadAsStringAsync();
+                var pollResp = await _httpClient.SendAsync(pollRequest);
+                var pollStr = await pollResp.Content.ReadAsStringAsync();
+                using var pollDoc = JsonDocument.Parse(pollStr);
+                var pollData = pollDoc.RootElement.GetProperty("data");
 
-                _logger.LogInformation($"Poll attempt {pollCount}: {pollResponseString}");
-
-                using var pollDocument = JsonDocument.Parse(pollResponseString);
-                var pollRoot = pollDocument.RootElement;
-
-                if (pollRoot.TryGetProperty("data", out var pollDataElement) &&
-                    pollDataElement.ValueKind == JsonValueKind.Object)
+                int successFlag = pollData.GetProperty("successFlag").GetInt32();
+                if (successFlag == 1) // Thành công
                 {
-                    if (pollDataElement.TryGetProperty("successFlag", out var successFlagElement))
-                    {
-                        var successFlag = successFlagElement.GetInt32();
+                    var imageUrl = pollData.GetProperty("response").GetProperty("resultImageUrl").GetString();
+                    _logger.LogInformation($"Render thành công! Đang tải về...");
 
-                        if (successFlag == 1) // SUCCESS
-                        {
-                            if (pollDataElement.TryGetProperty("response", out var responseElement) &&
-                                responseElement.ValueKind == JsonValueKind.Object)
-                            {
-                                if (responseElement.TryGetProperty("resultImageUrl", out var imageUrlElement))
-                                {
-                                    var imageUrl = imageUrlElement.GetString();
-                                    if (!string.IsNullOrEmpty(imageUrl))
-                                    {
-                                        _logger.LogInformation($"Image generation succeeded. Downloading from: {imageUrl}");
-
-                                        // Tải ảnh từ URL
-                                        var imageResponse = await _httpClient.GetAsync(imageUrl);
-                                        if (imageResponse.IsSuccessStatusCode)
-                                        {
-                                            var imageBytes = await imageResponse.Content.ReadAsByteArrayAsync();
-                                            _logger.LogInformation($"Image downloaded successfully. Size: {imageBytes.Length} bytes");
-                                            return Convert.ToBase64String(imageBytes);
-                                        }
-                                        else
-                                        {
-                                            _logger.LogError($"Failed to download image. Status: {imageResponse.StatusCode}");
-                                            throw new Exception($"Failed to download image from {imageUrl}: {imageResponse.StatusCode}");
-                                        }
-                                    }
-                                }
-                            }
-                            throw new Exception("Response element missing resultImageUrl. Full response: " + pollResponseString);
-                        }
-                        else if (successFlag == 2 || successFlag == 3) // FAILED
-                        {
-                            if (pollDataElement.TryGetProperty("errorMessage", out var errorMsgElement))
-                            {
-                                throw new Exception($"Image generation failed: {errorMsgElement.GetString()}");
-                            }
-                            throw new Exception("Image generation failed.");
-                        }
-                        // successFlag == 0 means still generating, continue polling
-                    }
+                    var imgDownload = await _httpClient.GetAsync(imageUrl);
+                    return Convert.ToBase64String(await imgDownload.Content.ReadAsByteArrayAsync());
+                }
+                else if (successFlag == 2 || successFlag == 3) // Thất bại
+                {
+                    var errorMsg = pollData.TryGetProperty("errorMessage", out var errMsg) ? errMsg.GetString() : "Unknown";
+                    throw new Exception($"AI xử lý ảnh thất bại: {errorMsg}");
                 }
             }
 
-            throw new Exception("Image generation timed out after 5 minutes.");
+            throw new Exception("Quá thời gian chờ kết quả (5 phút).");
         });
     }
 }
