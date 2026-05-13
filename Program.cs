@@ -8,6 +8,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<AuthManager>();
+builder.Services.AddScoped<DesignManager>();
 builder.Services.AddControllers();
 builder.Services.AddHttpClient<IExternalAIService, ExternalAI>();
 builder.Services.AddEndpointsApiExplorer();

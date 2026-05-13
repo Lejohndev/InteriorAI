@@ -10,6 +10,7 @@ namespace InteriorAI.Services;
 
 public interface IExternalAIService
 {
+    Task<string> UploadImageAsync(string base64Image);
     Task<string> AnalyzeRoomAndGetDesignPromptAsync(string base64Image, string style);
     Task<string> GenerateImageAsync(string prompt, string base64Image);
 }
@@ -62,6 +63,11 @@ public class ExternalAI : IExternalAIService
     }
 
     // Upload ảnh lên ImgBB 
+    public Task<string> UploadImageAsync(string base64Image)
+    {
+        return UploadImageToImgBBAsync(base64Image);
+    }
+
     private async Task<string> UploadImageToImgBBAsync(string base64Image)
     {
         // Đọc trực tiếp từ appsettings.json

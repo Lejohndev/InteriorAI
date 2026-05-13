@@ -1,6 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿﻿using System.ComponentModel.DataAnnotations;
 
-namespace InteriorAI.Models.Entities
+namespace InteriorAI.Domain.Entities
 {
     public class User
     {
