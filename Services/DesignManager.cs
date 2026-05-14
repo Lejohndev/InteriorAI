@@ -74,6 +74,11 @@ namespace InteriorAI.Services
                 throw new ArgumentException("UserId is required.", nameof(userId));
             }
 
+            if (!await _context.Users.AnyAsync(user => user.Id == userId))
+            {
+                throw new KeyNotFoundException("User does not exist.");
+            }
+
             var design = await _context.DesignResults
                 .AsNoTracking()
                 .FirstOrDefaultAsync(item => item.Id == designId && !item.IsDeleted);
@@ -174,7 +179,18 @@ namespace InteriorAI.Services
             await image.CopyToAsync(memoryStream);
             var imageBytes = memoryStream.ToArray();
 
-            if (Image.Identify(imageBytes) == null)
+            try
+            {
+                if (Image.Identify(imageBytes) == null)
+                {
+                    throw new InvalidDataException("The uploaded file is not a valid image.");
+                }
+            }
+            catch (InvalidDataException)
+            {
+                throw;
+            }
+            catch (Exception)
             {
                 throw new InvalidDataException("The uploaded file is not a valid image.");
             }

@@ -1,6 +1,7 @@
 ﻿﻿using System.Text.Json;
 using InteriorAI.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace InteriorAI.Data
 {
@@ -18,6 +19,14 @@ namespace InteriorAI.Data
 
             // Cấu hình JsonSerializerOptions 
             var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var stringListComparer = new ValueComparer<List<string>>(
+                (left, right) => left != null && right != null
+                    ? left.SequenceEqual(right)
+                    : left == right,
+                value => value == null
+                    ? 0
+                    : value.Aggregate(0, (hash, item) => HashCode.Combine(hash, item.GetHashCode())),
+                value => value == null ? new List<string>() : value.ToList());
 
             // ==========================================
        
@@ -30,25 +39,29 @@ namespace InteriorAI.Data
                 entity.Property(e => e.LightingOptions)
                     .HasConversion(
                         v => JsonSerializer.Serialize(v, jsonOptions),
-                        v => JsonSerializer.Deserialize<List<string>>(v, jsonOptions) ?? new List<string>()); // Sử dụng ?? để đảm bảo không trả về null
+                        v => JsonSerializer.Deserialize<List<string>>(v, jsonOptions) ?? new List<string>())
+                    .Metadata.SetValueComparer(stringListComparer); // Sử dụng ?? để đảm bảo không trả về null
 
                 // MaterialOptions
                 entity.Property(e => e.MaterialOptions)
                     .HasConversion(
                         v => JsonSerializer.Serialize(v, jsonOptions),
-                        v => JsonSerializer.Deserialize<List<string>>(v, jsonOptions) ?? new List<string>());
+                        v => JsonSerializer.Deserialize<List<string>>(v, jsonOptions) ?? new List<string>())
+                    .Metadata.SetValueComparer(stringListComparer);
 
                 // ColorRuleOptions
                 entity.Property(e => e.ColorRuleOptions)
                     .HasConversion(
                         v => JsonSerializer.Serialize(v, jsonOptions),
-                        v => JsonSerializer.Deserialize<List<string>>(v, jsonOptions) ?? new List<string>());
+                        v => JsonSerializer.Deserialize<List<string>>(v, jsonOptions) ?? new List<string>())
+                    .Metadata.SetValueComparer(stringListComparer);
 
                 // AtmosphereOptions
                 entity.Property(e => e.AtmosphereOptions)
                     .HasConversion(
                         v => JsonSerializer.Serialize(v, jsonOptions),
-                        v => JsonSerializer.Deserialize<List<string>>(v, jsonOptions) ?? new List<string>());
+                        v => JsonSerializer.Deserialize<List<string>>(v, jsonOptions) ?? new List<string>())
+                    .Metadata.SetValueComparer(stringListComparer);
             });
 
             
