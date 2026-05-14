@@ -1,5 +1,5 @@
 ﻿using InteriorAI.Data;
-using InteriorAI.Models.Entities;
+using InteriorAI.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace InteriorAI.Services

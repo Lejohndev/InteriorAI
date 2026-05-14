@@ -1,5 +1,5 @@
 using InteriorAI.Data;
-using InteriorAI.Models.Entities;
+using InteriorAI.Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using SixLabors.ImageSharp;
@@ -48,7 +48,7 @@ namespace InteriorAI.Services
             {
                 UserId = userId,
                 OriginalImageUrl = originalImageUrl,
-                Status = "pending",
+                Status = DesignStatuses.Pending,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -56,6 +56,7 @@ namespace InteriorAI.Services
             _context.DesignResults.Add(design);
             await _context.SaveChangesAsync();
 
+            _logger.LogInformation("Design job {DesignId} was created for user {UserId}.", design.Id, userId);
             StartProcessingInBackground(design.Id, base64Image, style);
 
             return design;
@@ -99,6 +100,12 @@ namespace InteriorAI.Services
                 return;
             }
 
+            if (design.Status == DesignStatuses.Completed)
+            {
+                _logger.LogInformation("Design job {DesignId} is already completed. Skipping duplicate processing.", designId);
+                return;
+            }
+
             try
             {
                 var selectedStyle = string.IsNullOrWhiteSpace(style) ? DefaultStyle : style.Trim();
@@ -108,17 +115,18 @@ namespace InteriorAI.Services
 
                 design.DesignPrompt = prompt;
                 design.DesignedImageUrl = designedImageUrl;
-                design.Status = "completed";
+                design.Status = DesignStatuses.Completed;
                 design.ErrorMessage = null;
                 design.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
+                _logger.LogInformation("Design job {DesignId} completed.", designId);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Design job {DesignId} failed.", designId);
 
-                design.Status = "failed";
+                design.Status = DesignStatuses.Failed;
                 design.ErrorMessage = Truncate(ex.Message, 2000);
                 design.UpdatedAt = DateTime.UtcNow;
 

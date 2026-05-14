@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace InteriorAI.Models.Entities
+namespace InteriorAI.Domain.Entities
 {
     public class DesignResult
     {
@@ -21,7 +21,7 @@ namespace InteriorAI.Models.Entities
 
         [Required]
         [MaxLength(32)]
-        public string Status { get; set; } = "pending";
+        public string Status { get; set; } = DesignStatuses.Pending;
 
         [MaxLength(2000)]
         public string? ErrorMessage { get; set; }
