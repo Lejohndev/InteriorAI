@@ -1,4 +1,4 @@
-﻿﻿using System.Text.Json;
+﻿using System.Text.Json;
 using InteriorAI.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -9,7 +9,6 @@ namespace InteriorAI.Data
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
         public DbSet<User> Users { get; set; } = default!;
-        public DbSet<DesignResult> DesignResults { get; set; } = default!;
         public DbSet<RoomInterior> RoomInteriors { get; set; } = default!;
         public DbSet<StyleAesthetic> StyleAesthetics { get; set; } = default!;
 
@@ -19,14 +18,6 @@ namespace InteriorAI.Data
 
             // Cấu hình JsonSerializerOptions 
             var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            var stringListComparer = new ValueComparer<List<string>>(
-                (left, right) => left != null && right != null
-                    ? left.SequenceEqual(right)
-                    : left == right,
-                value => value == null
-                    ? 0
-                    : value.Aggregate(0, (hash, item) => HashCode.Combine(hash, item.GetHashCode())),
-                value => value == null ? new List<string>() : value.ToList());
 
             // ==========================================
        
@@ -39,29 +30,25 @@ namespace InteriorAI.Data
                 entity.Property(e => e.LightingOptions)
                     .HasConversion(
                         v => JsonSerializer.Serialize(v, jsonOptions),
-                        v => JsonSerializer.Deserialize<List<string>>(v, jsonOptions) ?? new List<string>())
-                    .Metadata.SetValueComparer(stringListComparer); // Sử dụng ?? để đảm bảo không trả về null
+                        v => JsonSerializer.Deserialize<List<string>>(v, jsonOptions) ?? new List<string>()); // Sử dụng ?? để đảm bảo không trả về null
 
                 // MaterialOptions
                 entity.Property(e => e.MaterialOptions)
                     .HasConversion(
                         v => JsonSerializer.Serialize(v, jsonOptions),
-                        v => JsonSerializer.Deserialize<List<string>>(v, jsonOptions) ?? new List<string>())
-                    .Metadata.SetValueComparer(stringListComparer);
+                        v => JsonSerializer.Deserialize<List<string>>(v, jsonOptions) ?? new List<string>());
 
                 // ColorRuleOptions
                 entity.Property(e => e.ColorRuleOptions)
                     .HasConversion(
                         v => JsonSerializer.Serialize(v, jsonOptions),
-                        v => JsonSerializer.Deserialize<List<string>>(v, jsonOptions) ?? new List<string>())
-                    .Metadata.SetValueComparer(stringListComparer);
+                        v => JsonSerializer.Deserialize<List<string>>(v, jsonOptions) ?? new List<string>());
 
                 // AtmosphereOptions
                 entity.Property(e => e.AtmosphereOptions)
                     .HasConversion(
                         v => JsonSerializer.Serialize(v, jsonOptions),
-                        v => JsonSerializer.Deserialize<List<string>>(v, jsonOptions) ?? new List<string>())
-                    .Metadata.SetValueComparer(stringListComparer);
+                        v => JsonSerializer.Deserialize<List<string>>(v, jsonOptions) ?? new List<string>());
             });
 
             
@@ -75,19 +62,6 @@ namespace InteriorAI.Data
                       .WithMany(s => s.RoomInteriors)
                       .HasForeignKey(r => r.StyleID)
                       .OnDelete(DeleteBehavior.Cascade);
-            });
-
-            modelBuilder.Entity<DesignResult>(entity =>
-            {
-                entity.HasOne(design => design.User)
-                    .WithMany()
-                    .HasForeignKey(design => design.UserId)
-                    .OnDelete(DeleteBehavior.Restrict);
-
-                entity.HasIndex(design => design.UserId);
-                entity.HasIndex(design => design.CreatedAt);
-                entity.HasIndex(design => design.Status);
-                entity.HasIndex(design => new { design.UserId, design.IsDeleted, design.CreatedAt });
             });
         }
     }
