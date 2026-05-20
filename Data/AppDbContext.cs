@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using InteriorAI.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace InteriorAI.Data
 {
