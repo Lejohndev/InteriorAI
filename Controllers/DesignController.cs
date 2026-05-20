@@ -9,18 +9,15 @@ namespace InteriorAI.Controllers;
 public class DesignController : ControllerBase
 {
     private readonly DesignManager _designManager;
-    private readonly IExternalAIService _externalAIService;
     private readonly ILogger<DesignController> _logger;
     private readonly IWebHostEnvironment _environment;
 
     public DesignController(
         DesignManager designManager,
-        IExternalAIService externalAIService,
         ILogger<DesignController> logger,
         IWebHostEnvironment environment)
     {
         _designManager = designManager;
-        _externalAIService = externalAIService;
         _logger = logger;
         _environment = environment;
     }
@@ -36,7 +33,12 @@ public class DesignController : ControllerBase
 
         try
         {
-            var design = await _designManager.CreateDesignAsync(userId, request.Image!, request.Style);
+            var design = await _designManager.CreateDesignAsync(
+                userId,
+                request.Image!,
+                request.StyleId,
+                request.StyleName,
+                request.Style);
 
             return Ok(new DesignResponse
             {
@@ -109,6 +111,12 @@ public class DesignController : ControllerBase
         }
     }
 
+    [HttpGet("styles")]
+    public async Task<IActionResult> GetStyles()
+    {
+        return Ok(await _designManager.GetDesignStylesAsync());
+    }
+
     [HttpPost("generate-design")]
     public async Task<IActionResult> GenerateDesign([FromForm] DesignRequest request)
     {
@@ -122,37 +130,37 @@ public class DesignController : ControllerBase
             return BadRequest("Please upload an image of the room.");
         }
 
-        if (string.IsNullOrWhiteSpace(request.Style))
+        if (request.StyleId == null && string.IsNullOrWhiteSpace(request.StyleName) && string.IsNullOrWhiteSpace(request.Style))
         {
-            return BadRequest("Please specify a design style.");
+            return BadRequest("Please specify a design styleId or styleName.");
         }
 
         try
         {
-            using var memoryStream = new MemoryStream();
-            await request.Image.CopyToAsync(memoryStream);
-            var imageBytesData = memoryStream.ToArray();
+            var result = await _designManager.GenerateDesignPreviewAsync(
+                request.Image!,
+                request.StyleId,
+                request.StyleName,
+                request.Style);
 
-            SixLabors.ImageSharp.ImageInfo imageInfo;
-            try
+            return Ok(new
             {
-                imageInfo = SixLabors.ImageSharp.Image.Identify(imageBytesData);
-                if (imageInfo == null)
-                {
-                    return BadRequest("The uploaded file is not a valid image. Please upload a valid image file (JPEG, PNG, etc.).");
-                }
-            }
-            catch
-            {
-                return BadRequest("The uploaded file is not a valid image. Please upload a valid image file (JPEG, PNG, etc.).");
-            }
-
-            var base64Image = Convert.ToBase64String(imageBytesData);
-            var prompt = await _externalAIService.AnalyzeRoomAndGetDesignPromptAsync(base64Image, request.Style);
-            var generatedImageBase64 = await _externalAIService.GenerateImageAsync(prompt, base64Image);
-            var imageBytes = Convert.FromBase64String(generatedImageBase64);
-
-            return File(imageBytes, "image/jpeg", "redesigned_room.jpg");
+                originalImageUrl = result.OriginalImageUrl,
+                designedImageUrl = result.DesignedImageUrl,
+                designPrompt = result.DesignPrompt
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidDataException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
         }
         catch (Exception ex)
         {

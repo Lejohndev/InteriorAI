@@ -1,5 +1,6 @@
 using InteriorAI.Data;
 using InteriorAI.Domain.Entities;
+using InteriorAI.Models.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using SixLabors.ImageSharp;
@@ -9,26 +10,36 @@ namespace InteriorAI.Services
     public class DesignManager
     {
         private const long MaxImageBytes = 10 * 1024 * 1024;
-        private const string DefaultStyle = "Modern interior design";
 
         private readonly AppDbContext _context;
-        private readonly IExternalAIService _externalAIService;
+        private readonly IImageStorageService _imageStorageService;
+        private readonly IImageGenerationService _imageGenerationService;
+        private readonly IDesignPromptService _promptService;
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<DesignManager> _logger;
 
         public DesignManager(
             AppDbContext context,
-            IExternalAIService externalAIService,
+            IImageStorageService imageStorageService,
+            IImageGenerationService imageGenerationService,
+            IDesignPromptService promptService,
             IServiceScopeFactory scopeFactory,
             ILogger<DesignManager> logger)
         {
             _context = context;
-            _externalAIService = externalAIService;
+            _imageStorageService = imageStorageService;
+            _imageGenerationService = imageGenerationService;
+            _promptService = promptService;
             _scopeFactory = scopeFactory;
             _logger = logger;
         }
 
-        public async Task<DesignResult> CreateDesignAsync(string userId, IFormFile image, string? style)
+        public async Task<DesignResult> CreateDesignAsync(
+            string userId,
+            IFormFile image,
+            int? styleId,
+            string? styleName,
+            string? style)
         {
             if (string.IsNullOrWhiteSpace(userId))
             {
@@ -40,14 +51,16 @@ namespace InteriorAI.Services
                 throw new KeyNotFoundException("User does not exist.");
             }
 
+            var designPrompt = await _promptService.GetConfiguredPromptAsync(styleId, styleName, style);
             var imageBytes = await ReadAndValidateImageAsync(image);
             var base64Image = Convert.ToBase64String(imageBytes);
-            var originalImageUrl = await _externalAIService.UploadImageAsync(base64Image);
+            var originalImageUrl = await _imageStorageService.UploadImageAsync(base64Image);
 
             var design = new DesignResult
             {
                 UserId = userId,
                 OriginalImageUrl = originalImageUrl,
+                DesignPrompt = designPrompt,
                 Status = DesignStatuses.Pending,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
@@ -57,9 +70,34 @@ namespace InteriorAI.Services
             await _context.SaveChangesAsync();
 
             _logger.LogInformation("Design job {DesignId} was created for user {UserId}.", design.Id, userId);
-            StartProcessingInBackground(design.Id, base64Image, style);
+            StartProcessingInBackground(design.Id);
 
             return design;
+        }
+
+        public Task<List<DesignStyleResponse>> GetDesignStylesAsync()
+        {
+            return _promptService.GetDesignStylesAsync();
+        }
+
+        public Task<string> GetConfiguredDesignPromptAsync(int? styleId, string? styleName, string? style)
+        {
+            return _promptService.GetConfiguredPromptAsync(styleId, styleName, style);
+        }
+
+        public async Task<(string OriginalImageUrl, string DesignedImageUrl, string DesignPrompt)> GenerateDesignPreviewAsync(
+            IFormFile image,
+            int? styleId,
+            string? styleName,
+            string? style)
+        {
+            var designPrompt = await _promptService.GetConfiguredPromptAsync(styleId, styleName, style);
+            var imageBytes = await ReadAndValidateImageAsync(image);
+            var originalImageUrl = await _imageStorageService.UploadImageAsync(Convert.ToBase64String(imageBytes));
+            var temporaryDesignedImageUrl = await _imageGenerationService.GenerateImageFromUrlAsync(designPrompt, originalImageUrl);
+            var designedImageUrl = await _imageStorageService.UploadImageFromUrlAsync(temporaryDesignedImageUrl);
+
+            return (originalImageUrl, designedImageUrl, designPrompt);
         }
 
         public async Task<DesignResult?> GetDesignStatusAsync(string designId, string userId)
@@ -96,7 +134,7 @@ namespace InteriorAI.Services
             return design;
         }
 
-        public async Task ProcessDesignAsync(string designId, string base64Image, string? style)
+        public async Task ProcessDesignAsync(string designId)
         {
             var design = await _context.DesignResults.FirstOrDefaultAsync(item => item.Id == designId);
             if (design == null)
@@ -113,12 +151,16 @@ namespace InteriorAI.Services
 
             try
             {
-                var selectedStyle = string.IsNullOrWhiteSpace(style) ? DefaultStyle : style.Trim();
-                var prompt = await _externalAIService.AnalyzeRoomAndGetDesignPromptAsync(base64Image, selectedStyle);
-                var designedImageBase64 = await _externalAIService.GenerateImageAsync(prompt, base64Image);
-                var designedImageUrl = await _externalAIService.UploadImageAsync(designedImageBase64);
+                if (string.IsNullOrWhiteSpace(design.DesignPrompt))
+                {
+                    throw new InvalidOperationException("Design prompt is not configured for this job.");
+                }
 
-                design.DesignPrompt = prompt;
+                var temporaryDesignedImageUrl = await _imageGenerationService.GenerateImageFromUrlAsync(
+                    design.DesignPrompt,
+                    design.OriginalImageUrl);
+                var designedImageUrl = await _imageStorageService.UploadImageFromUrlAsync(temporaryDesignedImageUrl);
+
                 design.DesignedImageUrl = designedImageUrl;
                 design.Status = DesignStatuses.Completed;
                 design.ErrorMessage = null;
@@ -139,7 +181,7 @@ namespace InteriorAI.Services
             }
         }
 
-        private void StartProcessingInBackground(string designId, string base64Image, string? style)
+        private void StartProcessingInBackground(string designId)
         {
             _ = Task.Run(async () =>
             {
@@ -148,7 +190,7 @@ namespace InteriorAI.Services
                     using var scope = _scopeFactory.CreateScope();
                     var manager = scope.ServiceProvider.GetRequiredService<DesignManager>();
 
-                    await manager.ProcessDesignAsync(designId, base64Image, style);
+                    await manager.ProcessDesignAsync(designId);
                 }
                 catch (Exception ex)
                 {

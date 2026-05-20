@@ -15,4 +15,10 @@ namespace InteriorAI.Models.DTOs
         public string? DesignedImageUrl { get; set; }
         public string? ErrorMessage { get; set; }
     }
+
+    public class DesignStyleResponse
+    {
+        public int StyleId { get; set; }
+        public string StyleName { get; set; } = string.Empty;
+    }
 }
