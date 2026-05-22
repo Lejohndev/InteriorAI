@@ -8,12 +8,21 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<AuthManager>();
+builder.Services.AddScoped<DesignManager>();
+builder.Services.AddScoped<IDesignPromptService, DesignPromptService>();
 builder.Services.AddControllers();
-builder.Services.AddHttpClient<IExternalAIService, ExternalAI>();
+builder.Services.AddHttpClient<IImageStorageService, ImgBBImageStorageService>();
+builder.Services.AddHttpClient<IImageGenerationService, NanoBananaImageGenerationService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var promptService = scope.ServiceProvider.GetRequiredService<IDesignPromptService>();
+    await promptService.EnsureDefaultStylesAsync();
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -22,7 +31,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 var summaries = new[]
 {
