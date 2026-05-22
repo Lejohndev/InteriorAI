@@ -41,8 +41,11 @@ namespace InteriorAI.Controllers
 
         // HÀM MỚI: HỨNG ẢNH TỪ ANDROID
         [HttpPost("upload-avatar")]
-        public async Task<IActionResult> UploadAvatar([FromForm] string userId, [FromForm] IFormFile file)
+        public async Task<IActionResult> UploadAvatar([FromForm] UploadAvatarRequest request)
         {
+            var userId = request.UserId;
+            var file = request.File;
+
             // 1. Kiểm tra đầu vào xem có ảnh không
             if (file == null || file.Length == 0)
             {
