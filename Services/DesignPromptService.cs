@@ -44,7 +44,12 @@ public class DesignPromptService : IDesignPromptService
             .Select(style => new DesignStyleResponse
             {
                 StyleId = style.StyleID,
-                StyleName = style.StyleName
+                StyleName = style.StyleName,
+                CoreAesthetic = style.CoreAesthetic,
+                LightingOptions = style.LightingOptions,
+                MaterialOptions = style.MaterialOptions,
+                ColorRuleOptions = style.ColorRuleOptions,
+                AtmosphereOptions = style.AtmosphereOptions
             })
             .ToListAsync();
     }
