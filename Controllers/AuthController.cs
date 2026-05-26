@@ -126,5 +126,32 @@ var relativePath = $"{uniqueFileName}";
                 CreatedAt = user.CreatedAt
             });
         }
+        
+[HttpPut("update-name")]
+public async Task<IActionResult> UpdateName([FromBody] UpdateNameDto request)
+{
+    // Kiểm tra data gửi lên có bị rỗng không
+    if (string.IsNullOrEmpty(request.UserId) || string.IsNullOrEmpty(request.NewName))
+    {
+        return BadRequest("Thiếu UserId hoặc Tên mới!");
+    }
+
+    // Tìm thằng User trong DB (Dùng u.Id giống y hệt cách m làm ở hàm UploadAvatar)
+    var user = _context.Users.FirstOrDefault(u => u.Id == request.UserId);
+    if (user == null)
+    {
+        return NotFound("Không tìm thấy User này trong Database!");
+    }
+
+    // Đổi tên và chốt sổ
+    user.Name = request.NewName;
+    
+    // Nếu bảng Users của m có trường UpdatedAt thì mở comment dòng dưới ra:
+    // user.UpdatedAt = DateTime.UtcNow; 
+
+    await _context.SaveChangesAsync();
+
+    return Ok(new { message = "Cập nhật tên thành công!" });
+}
     }
 }

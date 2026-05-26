@@ -27,3 +27,9 @@ public class UserProfileResponse
     public string? AvatarUrl { get; set; }
     public DateTime CreatedAt { get; set; }
 }
+
+public class UpdateNameDto
+{
+    public string UserId { get; set; } = string.Empty;
+    public string NewName { get; set; } = string.Empty;
+}
