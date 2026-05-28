@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace InteriorAI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260514135133_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260528151744_AddRoomStylePrompts")]
+    partial class AddRoomStylePrompts
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -105,6 +105,68 @@ namespace InteriorAI.Migrations
                     b.HasIndex("StyleID");
 
                     b.ToTable("RoomInteriors");
+                });
+
+            modelBuilder.Entity("InteriorAI.Domain.Entities.RoomStylePrompt", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Atmosphere")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Furniture")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Lighting")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Material")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RoomTypeKey")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("RoomTypeName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<int>("StyleId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Variant")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoomTypeKey");
+
+                    b.HasIndex("StyleId", "RoomTypeKey")
+                        .IsUnique();
+
+                    b.ToTable("RoomStylePrompts");
                 });
 
             modelBuilder.Entity("InteriorAI.Domain.Entities.StyleAesthetic", b =>
@@ -200,9 +262,22 @@ namespace InteriorAI.Migrations
                     b.Navigation("Style");
                 });
 
+            modelBuilder.Entity("InteriorAI.Domain.Entities.RoomStylePrompt", b =>
+                {
+                    b.HasOne("InteriorAI.Domain.Entities.StyleAesthetic", "StyleAesthetic")
+                        .WithMany("RoomStylePrompts")
+                        .HasForeignKey("StyleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("StyleAesthetic");
+                });
+
             modelBuilder.Entity("InteriorAI.Domain.Entities.StyleAesthetic", b =>
                 {
                     b.Navigation("RoomInteriors");
+
+                    b.Navigation("RoomStylePrompts");
                 });
 #pragma warning restore 612, 618
         }

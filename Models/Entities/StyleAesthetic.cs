@@ -18,5 +18,8 @@ namespace InteriorAI.Domain.Entities
         // Thuộc tính điều hướng: 1 phong cách có thể áp dụng cho nhiều phòng
         public virtual ICollection<RoomInterior> RoomInteriors { get; set; } 
             = new List<RoomInterior>();
+
+        public virtual ICollection<RoomStylePrompt> RoomStylePrompts { get; set; }
+            = new List<RoomStylePrompt>();
     }
 }

@@ -43,6 +43,9 @@ namespace InteriorAI.Controllers
         [HttpPost("upload-avatar")]
         public async Task<IActionResult> UploadAvatar([FromForm] UploadAvatarRequest request)  //string userId, [FromForm] IFormFile file)
         {
+            var userId = request.UserId;
+            var file = request.File;
+
             // 1. Kiểm tra đầu vào xem có ảnh không
             if (request.File == null || request.File.Length == 0)
             {

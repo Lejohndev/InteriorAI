@@ -135,6 +135,40 @@ public class NanoBananaImageGenerationService : IImageGenerationService
         throw new Exception("Timed out waiting for NanoBanana result.");
     }
 
+    private static string GetErrorMessage(JsonElement root, int code)
+    {
+        if (root.TryGetProperty("msg", out var msgElement) &&
+            !string.IsNullOrWhiteSpace(msgElement.GetString()))
+        {
+            return msgElement.GetString()!;
+        }
+
+        if (root.TryGetProperty("message", out var messageElement) &&
+            !string.IsNullOrWhiteSpace(messageElement.GetString()))
+        {
+            return messageElement.GetString()!;
+        }
+
+        if (root.TryGetProperty("data", out var dataElement) &&
+            dataElement.ValueKind == JsonValueKind.Object &&
+            dataElement.TryGetProperty("errorMessage", out var dataErrorElement) &&
+            !string.IsNullOrWhiteSpace(dataErrorElement.GetString()))
+        {
+            return dataErrorElement.GetString()!;
+        }
+
+        return code switch
+        {
+            401 => "Unauthorized. API key is missing, invalid, or not allowed for this endpoint.",
+            402 => "Insufficient credits. The NanoBanana account does not have enough credits for generation.",
+            422 => "Validation error. Request parameters were rejected by NanoBanana.",
+            429 => "Rate limited. Too many requests were sent to NanoBanana.",
+            455 => "Service unavailable. NanoBanana is under maintenance.",
+            505 => "Feature disabled. This generation endpoint is disabled for the account.",
+            _ => "Unknown error"
+        };
+    }
+
     private static void ValidateInput(string prompt, string imageUrl)
     {
         if (string.IsNullOrWhiteSpace(prompt))
