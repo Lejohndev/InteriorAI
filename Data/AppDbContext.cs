@@ -11,6 +11,7 @@ namespace InteriorAI.Data
         public DbSet<User> Users { get; set; } = default!;
         public DbSet<DesignResult> DesignResults { get; set; } = default!;
         public DbSet<RoomInterior> RoomInteriors { get; set; } = default!;
+        public DbSet<RoomStylePrompt> RoomStylePrompts { get; set; } = default!;
         public DbSet<StyleAesthetic> StyleAesthetics { get; set; } = default!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -63,6 +64,47 @@ namespace InteriorAI.Data
                       .WithMany(s => s.RoomInteriors)
                       .HasForeignKey(r => r.StyleID)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<RoomStylePrompt>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.RoomTypeKey)
+                    .HasMaxLength(64)
+                    .IsRequired();
+
+                entity.Property(e => e.RoomTypeName)
+                    .HasMaxLength(128)
+                    .IsRequired();
+
+                entity.Property(e => e.Variant)
+                    .HasMaxLength(64)
+                    .IsRequired();
+
+                entity.Property(e => e.Lighting)
+                    .IsRequired();
+
+                entity.Property(e => e.Material)
+                    .IsRequired();
+
+                entity.Property(e => e.Color)
+                    .IsRequired();
+
+                entity.Property(e => e.Furniture)
+                    .IsRequired();
+
+                entity.Property(e => e.Atmosphere)
+                    .IsRequired();
+
+                entity.HasIndex(e => e.RoomTypeKey);
+                entity.HasIndex(e => new { e.StyleId, e.RoomTypeKey })
+                    .IsUnique();
+
+                entity.HasOne(e => e.StyleAesthetic)
+                    .WithMany(style => style.RoomStylePrompts)
+                    .HasForeignKey(e => e.StyleId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<DesignResult>(entity =>
