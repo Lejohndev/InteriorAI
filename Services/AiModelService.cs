@@ -72,8 +72,10 @@ public class NanoBananaImageGenerationService : IImageGenerationService
 
         if (root.TryGetProperty("code", out var codeElement) && codeElement.GetInt32() != 200)
         {
-            var code = codeElement.GetInt32();
-            throw new Exception($"NanoBanana rejected request (code {code}): {GetErrorMessage(root, code)}");
+            var message = root.TryGetProperty("msg", out var messageElement)
+                ? messageElement.GetString()
+                : "Unknown error";
+            throw new Exception($"NanoBanana rejected request (code {codeElement.GetInt32()}): {message}");
         }
 
         var taskId = root.GetProperty("data").GetProperty("taskId").GetString();
