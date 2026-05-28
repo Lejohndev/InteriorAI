@@ -1,4 +1,5 @@
 using InteriorAI.Data;
+using InteriorAI.Data.Seed;
 using InteriorAI.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,6 +10,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddScoped<AuthManager>();
 builder.Services.AddScoped<DesignManager>();
+builder.Services.AddScoped<DesignStudioSeeder>();
 builder.Services.AddScoped<IDesignPromptService, DesignPromptService>();
 builder.Services.AddControllers();
 builder.Services.AddHttpClient<IImageStorageService, ImgBBImageStorageService>();
@@ -20,8 +22,8 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
-    var promptService = scope.ServiceProvider.GetRequiredService<IDesignPromptService>();
-    await promptService.EnsureDefaultStylesAsync();
+    var seeder = scope.ServiceProvider.GetRequiredService<DesignStudioSeeder>();
+    await seeder.EnsureSeedDataAsync();
 }
 
 // Configure the HTTP request pipeline.

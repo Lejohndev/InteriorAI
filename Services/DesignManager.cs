@@ -39,7 +39,8 @@ namespace InteriorAI.Services
             IFormFile image,
             int? styleId,
             string? styleName,
-            string? style)
+            string? style,
+            string? roomType)
         {
             if (string.IsNullOrWhiteSpace(userId))
             {
@@ -51,7 +52,7 @@ namespace InteriorAI.Services
                 throw new KeyNotFoundException("User does not exist.");
             }
 
-            var designPrompt = await _promptService.GetConfiguredPromptAsync(styleId, styleName, style);
+            var designPrompt = await _promptService.GetConfiguredPromptAsync(styleId, styleName, style, roomType);
             var imageBytes = await ReadAndValidateImageAsync(image);
             var base64Image = Convert.ToBase64String(imageBytes);
             var originalImageUrl = await _imageStorageService.UploadImageAsync(base64Image);
@@ -80,18 +81,19 @@ namespace InteriorAI.Services
             return _promptService.GetDesignStylesAsync();
         }
 
-        public Task<string> GetConfiguredDesignPromptAsync(int? styleId, string? styleName, string? style)
+        public Task<string> GetConfiguredDesignPromptAsync(int? styleId, string? styleName, string? style, string? roomType = null)
         {
-            return _promptService.GetConfiguredPromptAsync(styleId, styleName, style);
+            return _promptService.GetConfiguredPromptAsync(styleId, styleName, style, roomType);
         }
 
         public async Task<(string OriginalImageUrl, string DesignedImageUrl, string DesignPrompt)> GenerateDesignPreviewAsync(
             IFormFile image,
             int? styleId,
             string? styleName,
-            string? style)
+            string? style,
+            string? roomType = null)
         {
-            var designPrompt = await _promptService.GetConfiguredPromptAsync(styleId, styleName, style);
+            var designPrompt = await _promptService.GetConfiguredPromptAsync(styleId, styleName, style, roomType);
             var imageBytes = await ReadAndValidateImageAsync(image);
             var originalImageUrl = await _imageStorageService.UploadImageAsync(Convert.ToBase64String(imageBytes));
             var temporaryDesignedImageUrl = await _imageGenerationService.GenerateImageFromUrlAsync(designPrompt, originalImageUrl);
