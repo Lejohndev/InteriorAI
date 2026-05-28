@@ -24,9 +24,9 @@ namespace InteriorAI.Domain.Entities
         public string Status { get; set; } = DesignStatuses.Pending;
 
         [MaxLength(2000)]
-        public string? ErrorMessage { get; set; }
+        public string? ErrorMessage { get; set; } 
 
-        public bool IsDeleted { get; set; }
+        public bool IsDeleted { get; set; } = false; //dat them o day
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
