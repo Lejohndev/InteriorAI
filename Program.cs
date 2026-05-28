@@ -58,6 +58,9 @@ app.MapGet("/weatherforecast", () =>
 .WithName("GetWeatherForecast")
 .WithOpenApi();
 
+// 👉 THÊM ĐÚNG 1 DÒNG NÀY VÀO (Để C# cho phép tải ảnh từ thư mục wwwroot)
+app.UseStaticFiles();
+
 app.MapControllers();
 
 app.Run();

@@ -1,4 +1,6 @@
-﻿namespace InteriorAI.Models.DTOs
+﻿using Microsoft.AspNetCore.Http;
+
+namespace InteriorAI.Models.DTOs
 {
     public class RegisterDeviceRequest
     {
@@ -10,6 +12,12 @@
     {
         public string? Name { get; set; }
         public string? AvatarUrl { get; set; }
+    }
+
+    public class UploadAvatarRequest
+    {
+        public string UserId { get; set; } = string.Empty;
+        public IFormFile File { get; set; } = null!;
     }
 }
 public class UserProfileResponse
