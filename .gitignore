@@ -6,3 +6,4 @@
 /interiorAI.csproj.lscache
 wwwroot/*
 !wwwroot/.gitkeep
+.codegraph/

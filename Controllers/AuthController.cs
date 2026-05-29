@@ -41,19 +41,19 @@ namespace InteriorAI.Controllers
 
         // HÀM MỚI: HỨNG ẢNH TỪ ANDROID
         [HttpPost("upload-avatar")]
-        public async Task<IActionResult> UploadAvatar([FromForm] UploadAvatarRequest request)
+        public async Task<IActionResult> UploadAvatar([FromForm] UploadAvatarRequest request)  //string userId, [FromForm] IFormFile file)
         {
             var userId = request.UserId;
             var file = request.File;
 
             // 1. Kiểm tra đầu vào xem có ảnh không
-            if (file == null || file.Length == 0)
+            if (request.File == null || request.File.Length == 0)
             {
                 return BadRequest("Không tìm thấy file ảnh!");
             }
 
             // 2. Tìm thằng User đang cần đổi avatar trong Database
-            var user = _context.Users.FirstOrDefault(u => u.Id == userId);
+            var user = _context.Users.FirstOrDefault(u => u.Id == request.UserId);
             if (user == null)
             {
                 return NotFound("Không tìm thấy User này trong Database!");
@@ -67,17 +67,17 @@ namespace InteriorAI.Controllers
             }
 
             // 4. Đổi tên file cho khỏi trùng (Thêm dải mã ngẫu nhiên Guid vào trước tên ảnh)
-            var uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
+            var uniqueFileName = Guid.NewGuid().ToString() + "_" + request.File.FileName;
             var filePath = Path.Combine(uploadsFolder, uniqueFileName);
 
             // 5. Lưu file ảnh vào ổ cứng máy tính
             using (var stream = new FileStream(filePath, FileMode.Create))
             {
-                await file.CopyToAsync(stream);
+                await request.File.CopyToAsync(stream);
             }
 
            // Chỉ lưu đường dẫn thư mục và tên file
-var relativePath = $"{uniqueFileName}";
+            var relativePath = $"{uniqueFileName}";
 
             // 7. Lưu cái link đó vào Database của thằng User này
             user.AvatarUrl = relativePath;
