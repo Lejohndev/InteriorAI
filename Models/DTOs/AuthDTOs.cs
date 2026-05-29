@@ -19,17 +19,18 @@ namespace InteriorAI.Models.DTOs
         public string UserId { get; set; } = string.Empty;
         public IFormFile File { get; set; } = null!;
     }
-}
-public class UserProfileResponse
-{
-    public string UserId { get; set; } = string.Empty;
-    public string? Name { get; set; }
-    public string? AvatarUrl { get; set; }
-    public DateTime CreatedAt { get; set; }
-}
 
-public class UpdateNameDto
-{
-    public string UserId { get; set; } = string.Empty;
-    public string NewName { get; set; } = string.Empty;
+    public class UserProfileResponse
+    {
+        public string UserId { get; set; } = string.Empty;
+        public string? Name { get; set; }
+        public string? AvatarUrl { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    public class UpdateNameDto
+    {
+        public string UserId { get; set; } = string.Empty;
+        public string NewName { get; set; } = string.Empty;
+    }
 }
