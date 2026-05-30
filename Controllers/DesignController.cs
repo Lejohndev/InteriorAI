@@ -38,7 +38,8 @@ public class DesignController : ControllerBase
                 request.Image!,
                 request.StyleId,
                 request.StyleName,
-                request.Style);
+                request.Style,
+                request.RoomType);
 
             return Ok(new DesignResponse
             {
@@ -141,7 +142,8 @@ public class DesignController : ControllerBase
                 request.Image!,
                 request.StyleId,
                 request.StyleName,
-                request.Style);
+                request.Style,
+                request.RoomType);
 
             return Ok(new
             {

@@ -8,5 +8,6 @@ namespace InteriorAI.Models.DTOs
         public int? StyleId { get; set; }
         public string? StyleName { get; set; }
         public string? Style { get; set; }
+        public string? RoomType { get; set; }
     }
 }

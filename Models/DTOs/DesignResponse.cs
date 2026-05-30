@@ -20,5 +20,10 @@ namespace InteriorAI.Models.DTOs
     {
         public int StyleId { get; set; }
         public string StyleName { get; set; } = string.Empty;
+        public string CoreAesthetic { get; set; } = string.Empty;
+        public List<string> LightingOptions { get; set; } = new();
+        public List<string> MaterialOptions { get; set; } = new();
+        public List<string> ColorRuleOptions { get; set; } = new();
+        public List<string> AtmosphereOptions { get; set; } = new();
     }
 }
