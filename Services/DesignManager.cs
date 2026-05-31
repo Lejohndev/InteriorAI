@@ -242,6 +242,49 @@ namespace InteriorAI.Services
             return imageBytes;
         }
 
+        public async Task<(List<DesignResult>, int)> GetUserProjectsAsync(
+            string userId,
+            int page,
+            int pageSize)
+        {
+            var query = _context.DesignResults
+                .AsNoTracking()
+                .Where(d => d.UserId == userId && !d.IsDeleted);
+
+            var total = await query.CountAsync();
+
+            var projects = await query
+                .OrderByDescending(d => d.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (projects, total);
+        }
+
+        public async Task DeleteProjectAsync(
+            string designId,
+            string userId)
+        {
+            var design = await _context.DesignResults
+                .FirstOrDefaultAsync(d => d.Id == designId);
+
+            if (design == null)
+            {
+                throw new KeyNotFoundException("Project not found.");
+            }
+
+            if (design.UserId != userId)
+            {
+                throw new UnauthorizedAccessException("Design does not belong to this user.");
+            }
+
+            design.IsDeleted = true;
+            design.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+        }
+
         private static string Truncate(string value, int maxLength)
         {
             return value.Length <= maxLength ? value : value[..maxLength];

@@ -171,6 +171,79 @@ public class DesignController : ControllerBase
         }
     }
 
+    [HttpGet("projects")]
+    public async Task<IActionResult> GetUserProjects(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10)
+    {
+        var userId = GetUserId();
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return BadRequest(new { message = "Missing required user-id header." });
+        }
+
+        if (page < 1 || pageSize < 1 || pageSize > 50)
+        {
+            return BadRequest(new { message = "Invalid page or pageSize. Valid range: page >= 1, 1 <= pageSize <= 50." });
+        }
+
+        try
+        {
+            var (projects, total) = await _designManager.GetUserProjectsAsync(userId, page, pageSize);
+
+            return Ok(new
+            {
+                data = projects,
+                page = page,
+                pageSize = pageSize,
+                total = total,
+                totalPages = (total + pageSize - 1) / pageSize
+            });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get projects for user {UserId}.", userId);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = ex.Message });
+        }
+    }
+
+    [HttpDelete("{designId}")]
+    public async Task<IActionResult> DeleteProject(string designId)
+    {
+        var userId = GetUserId();
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return BadRequest(new { message = "Missing required user-id header." });
+        }
+
+        try
+        {
+            await _designManager.DeleteProjectAsync(designId, userId);
+            return Ok(new { message = "Deleted successfully" });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delete project {DesignId}.", designId);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = ex.Message });
+        }
+    }
+
     private string GetUserId()
     {
         return HttpContext.Request.Headers["user-id"].ToString();
