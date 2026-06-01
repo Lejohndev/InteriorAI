@@ -76,6 +76,49 @@ namespace InteriorAI.Services
             return design;
         }
 
+        public async Task<DesignResult> CreateChatDesignAsync(
+            string userId,
+            IFormFile image,
+            string prompt)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                throw new ArgumentException("UserId is required.", nameof(userId));
+            }
+
+            if (string.IsNullOrWhiteSpace(prompt))
+            {
+                throw new ArgumentException("Prompt is required.", nameof(prompt));
+            }
+
+            if (!await _context.Users.AnyAsync(user => user.Id == userId))
+            {
+                throw new KeyNotFoundException("User does not exist.");
+            }
+
+            var imageBytes = await ReadAndValidateImageAsync(image);
+            var base64Image = Convert.ToBase64String(imageBytes);
+            var originalImageUrl = await _imageStorageService.UploadImageAsync(base64Image);
+
+            var design = new DesignResult
+            {
+                UserId = userId,
+                OriginalImageUrl = originalImageUrl,
+                DesignPrompt = prompt,
+                Status = DesignStatuses.Pending,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            _context.DesignResults.Add(design);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Chat design job {DesignId} was created for user {UserId}.", design.Id, userId);
+            StartProcessingInBackground(design.Id);
+
+            return design;
+        }
+
         public Task<List<DesignStyleResponse>> GetDesignStylesAsync()
         {
             return _promptService.GetDesignStylesAsync();

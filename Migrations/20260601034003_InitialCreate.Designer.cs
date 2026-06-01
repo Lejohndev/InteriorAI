@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace InteriorAI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260528151744_AddRoomStylePrompts")]
-    partial class AddRoomStylePrompts
+    [Migration("20260601034003_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
