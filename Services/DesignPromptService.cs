@@ -85,7 +85,7 @@ public class DesignPromptService : IDesignPromptService
                 return normalizedFeatureId switch
                 {
                     "furnish_empty_room" => BuildFurnishEmptyRoomPrompt(styleConfig, roomPrompt),
-                    "remove_furniture" => BuildRemoveFurniturePrompt(roomPrompt.RoomTypeName),
+                    "remove_furniture" => BuildRemoveFurniturePrompt(roomPrompt.RoomTypeName, styleConfig),
                     _ => BuildRoomPrompt(styleConfig, roomPrompt)
                 };
             }
@@ -98,7 +98,7 @@ public class DesignPromptService : IDesignPromptService
 
         if (normalizedFeatureId == "remove_furniture")
         {
-            return BuildRemoveFurniturePrompt(GetFallbackRoomTypeName(roomTypeKey));
+            return BuildRemoveFurniturePrompt(GetFallbackRoomTypeName(roomTypeKey), styleConfig);
         }
 
         var prompt = BuildPrompt(styleConfig);
@@ -217,14 +217,16 @@ public class DesignPromptService : IDesignPromptService
 
         const string styleBase = "The interior space";
 
-        return $"A photorealistic architectural interior photography of a {roomPrompt.RoomTypeName}. " +
-               $"{styleBase} completely redesigned in a residential {styleCore}. " +
-               $"The scene features {roomPrompt.Lighting}. " +
-               $"Materials strictly limited to {roomPrompt.Material}. " +
-               $"Color grading follows a strict rule: {roomPrompt.Color}. " +
-               $"Key elements include {roomPrompt.Furniture}. " +
-               $"The atmosphere is {roomPrompt.Atmosphere}. " +
-               "Photorealistic, natural room lighting, hyper-detailed, architectural photography, 8k.";
+        var prompt = $"A photorealistic architectural interior photography of a {roomPrompt.RoomTypeName}. " +
+                     $"{styleBase} completely redesigned in a residential {styleCore}. " +
+                     $"The scene features {roomPrompt.Lighting}. " +
+                     $"Materials strictly limited to {roomPrompt.Material}. " +
+                     $"Color grading follows a strict rule: {roomPrompt.Color}. " +
+                     $"Key elements include {roomPrompt.Furniture}. " +
+                     $"The atmosphere is {roomPrompt.Atmosphere}. " +
+                     "Photorealistic, natural room lighting, hyper-detailed, architectural photography, 8k.";
+
+        return AppendAvoidClause(prompt, style.SpecificNegative);
     }
 
     private static string BuildFurnishEmptyRoomPrompt(StyleAesthetic style, RoomStylePrompt roomPrompt)
@@ -236,25 +238,29 @@ public class DesignPromptService : IDesignPromptService
             _ => style.CoreAesthetic
         };
 
-        return $"A photorealistic architectural interior photography of an empty or mostly empty {roomPrompt.RoomTypeName}. " +
-               $"Furnish the space from scratch as a residential {styleCore} while preserving the original architecture, camera angle, walls, floor, ceiling, windows, doors, and room geometry. " +
-               $"The scene features {roomPrompt.Lighting}. " +
-               $"Materials strictly limited to {roomPrompt.Material}. " +
-               $"Color grading follows a strict rule: {roomPrompt.Color}. " +
-               $"Add suitable furniture and decor for this room type, including {roomPrompt.Furniture}. " +
-               $"The atmosphere is {roomPrompt.Atmosphere}. " +
-               "Photorealistic, natural room lighting, hyper-detailed, architectural photography, 8k.";
+        var prompt = $"A photorealistic architectural interior photography of an empty or mostly empty {roomPrompt.RoomTypeName}. " +
+                     $"Furnish the space from scratch as a residential {styleCore} while preserving the original architecture, camera angle, walls, floor, ceiling, windows, doors, and room geometry. " +
+                     $"The scene features {roomPrompt.Lighting}. " +
+                     $"Materials strictly limited to {roomPrompt.Material}. " +
+                     $"Color grading follows a strict rule: {roomPrompt.Color}. " +
+                     $"Add suitable furniture and decor for this room type, including {roomPrompt.Furniture}. " +
+                     $"The atmosphere is {roomPrompt.Atmosphere}. " +
+                     "Photorealistic, natural room lighting, hyper-detailed, architectural photography, 8k.";
+
+        return AppendAvoidClause(prompt, style.SpecificNegative);
     }
 
-    private static string BuildRemoveFurniturePrompt(string roomTypeName)
+    private static string BuildRemoveFurniturePrompt(string roomTypeName, StyleAesthetic? style = null)
     {
-        return $"A photorealistic architectural interior photography of a {roomTypeName}. " +
-               "Remove all existing furniture, loose decor, rugs, clutter, personal items, and movable objects from the uploaded room. " +
-               "Preserve the original architecture, camera angle, walls, floor, ceiling, windows, doors, built-in fixtures, and room geometry. " +
-               "Realistically reconstruct any hidden floor, wall, baseboard, ceiling, shadow, and surface areas that were covered by removed objects. " +
-               "Keep the result as a clean empty room with natural room lighting and believable material continuity. " +
-               "Do not add new furniture. Do not add decorative styling. Do not introduce style-heavy decor, plants, artwork, rugs, people, text, or watermark. " +
-               "Photorealistic, natural room lighting, hyper-detailed, architectural photography, 8k.";
+        var prompt = $"A photorealistic architectural interior photography of a {roomTypeName}. " +
+                     "Remove all existing furniture, loose decor, rugs, clutter, personal items, and movable objects from the uploaded room. " +
+                     "Preserve the original architecture, camera angle, walls, floor, ceiling, windows, doors, built-in fixtures, and room geometry. " +
+                     "Realistically reconstruct any hidden floor, wall, baseboard, ceiling, shadow, and surface areas that were covered by removed objects. " +
+                     "Keep the result as a clean empty room with natural room lighting and believable material continuity. " +
+                     "Do not add new furniture. Do not add decorative styling. Do not introduce style-heavy decor, plants, artwork, rugs, people, text, or watermark. " +
+                     "Photorealistic, natural room lighting, hyper-detailed, architectural photography, 8k.";
+
+        return AppendAvoidClause(prompt, style?.SpecificNegative);
     }
 
     private static string BuildPrompt(StyleAesthetic style)
@@ -276,6 +282,17 @@ public class DesignPromptService : IDesignPromptService
         }
 
         return promptBuilder.ToString().Trim();
+    }
+
+    private static string AppendAvoidClause(string prompt, string? specificNegative)
+    {
+        var trimmedPrompt = prompt.Trim();
+        if (string.IsNullOrWhiteSpace(specificNegative))
+        {
+            return trimmedPrompt;
+        }
+
+        return $"{trimmedPrompt} Avoid: {specificNegative.Trim()}";
     }
 
     private static void AppendLineIfPresent(StringBuilder promptBuilder, string? value)
