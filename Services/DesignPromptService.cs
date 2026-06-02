@@ -10,7 +10,12 @@ namespace InteriorAI.Services;
 public interface IDesignPromptService
 {
     Task<List<DesignStyleResponse>> GetDesignStylesAsync();
-    Task<string> GetConfiguredPromptAsync(int? styleId, string? styleName, string? legacyStyle, string? roomType = null);
+    Task<string> GetConfiguredPromptAsync(
+        int? styleId,
+        string? styleName,
+        string? legacyStyle,
+        string? roomType = null,
+        string? featureId = null);
 }
 
 public class DesignPromptService : IDesignPromptService
@@ -49,7 +54,8 @@ public class DesignPromptService : IDesignPromptService
         int? styleId,
         string? styleName,
         string? legacyStyle,
-        string? roomType = null)
+        string? roomType = null,
+        string? featureId = null)
     {
         var styleKey = FirstNotEmpty(styleName, legacyStyle);
         if (styleId == null && string.IsNullOrWhiteSpace(styleKey))
@@ -64,6 +70,7 @@ public class DesignPromptService : IDesignPromptService
             throw new KeyNotFoundException($"Design style '{requestedStyle}' was not found. Use an existing styleId or styleName.");
         }
 
+        var normalizedFeatureId = NormalizeFeatureId(featureId);
         var roomTypeKey = NormalizeRoomTypeKey(roomType);
         if (!string.IsNullOrWhiteSpace(roomTypeKey))
         {
@@ -75,13 +82,23 @@ public class DesignPromptService : IDesignPromptService
 
             if (roomPrompt != null)
             {
-                return BuildRoomPrompt(styleConfig, roomPrompt);
+                return normalizedFeatureId switch
+                {
+                    "furnish_empty_room" => BuildFurnishEmptyRoomPrompt(styleConfig, roomPrompt),
+                    "remove_furniture" => BuildRemoveFurniturePrompt(roomPrompt.RoomTypeName),
+                    _ => BuildRoomPrompt(styleConfig, roomPrompt)
+                };
             }
 
             _logger.LogInformation(
                 "No room-specific prompt found for style {StyleId} and roomType {RoomTypeKey}. Falling back to style-only prompt.",
                 styleConfig.StyleID,
                 roomTypeKey);
+        }
+
+        if (normalizedFeatureId == "remove_furniture")
+        {
+            return BuildRemoveFurniturePrompt(GetFallbackRoomTypeName(roomTypeKey));
         }
 
         var prompt = BuildPrompt(styleConfig);
@@ -153,6 +170,42 @@ public class DesignPromptService : IDesignPromptService
         };
     }
 
+    private static string NormalizeFeatureId(string? featureId)
+    {
+        if (string.IsNullOrWhiteSpace(featureId))
+        {
+            return "interior_design";
+        }
+
+        var normalized = featureId.Trim().ToLowerInvariant()
+            .Replace("-", "_")
+            .Replace(" ", "_");
+
+        return normalized switch
+        {
+            "interior_design" => "interior_design",
+            "furnish_empty_room" or "furnish_room" or "empty_room" => "furnish_empty_room",
+            "remove_furniture" or "clear_room" or "empty_existing_room" => "remove_furniture",
+            _ => "interior_design"
+        };
+    }
+
+    private static string GetFallbackRoomTypeName(string? roomTypeKey)
+    {
+        return roomTypeKey switch
+        {
+            "living_room" => "Living Room",
+            "master_bedroom" => "Master Bedroom",
+            "kitchen" => "Kitchen",
+            "dining_room" => "Dining Room",
+            "bathroom" => "Bathroom",
+            "study_room" => "Study Room",
+            "kids_room" => "Kids Room",
+            "walk_in_closet" => "Walk-in Closet",
+            _ => "room"
+        };
+    }
+
     private static string BuildRoomPrompt(StyleAesthetic style, RoomStylePrompt roomPrompt)
     {
         var styleCore = style.StyleName switch
@@ -171,6 +224,36 @@ public class DesignPromptService : IDesignPromptService
                $"Color grading follows a strict rule: {roomPrompt.Color}. " +
                $"Key elements include {roomPrompt.Furniture}. " +
                $"The atmosphere is {roomPrompt.Atmosphere}. " +
+               "Photorealistic, natural room lighting, hyper-detailed, architectural photography, 8k.";
+    }
+
+    private static string BuildFurnishEmptyRoomPrompt(StyleAesthetic style, RoomStylePrompt roomPrompt)
+    {
+        var styleCore = style.StyleName switch
+        {
+            "Japandi" => "Japandi (Japanese-Scandinavian fusion)",
+            "Tropical" => "Tropical",
+            _ => style.CoreAesthetic
+        };
+
+        return $"A photorealistic architectural interior photography of an empty or mostly empty {roomPrompt.RoomTypeName}. " +
+               $"Furnish the space from scratch as a residential {styleCore} while preserving the original architecture, camera angle, walls, floor, ceiling, windows, doors, and room geometry. " +
+               $"The scene features {roomPrompt.Lighting}. " +
+               $"Materials strictly limited to {roomPrompt.Material}. " +
+               $"Color grading follows a strict rule: {roomPrompt.Color}. " +
+               $"Add suitable furniture and decor for this room type, including {roomPrompt.Furniture}. " +
+               $"The atmosphere is {roomPrompt.Atmosphere}. " +
+               "Photorealistic, natural room lighting, hyper-detailed, architectural photography, 8k.";
+    }
+
+    private static string BuildRemoveFurniturePrompt(string roomTypeName)
+    {
+        return $"A photorealistic architectural interior photography of a {roomTypeName}. " +
+               "Remove all existing furniture, loose decor, rugs, clutter, personal items, and movable objects from the uploaded room. " +
+               "Preserve the original architecture, camera angle, walls, floor, ceiling, windows, doors, built-in fixtures, and room geometry. " +
+               "Realistically reconstruct any hidden floor, wall, baseboard, ceiling, shadow, and surface areas that were covered by removed objects. " +
+               "Keep the result as a clean empty room with natural room lighting and believable material continuity. " +
+               "Do not add new furniture. Do not add decorative styling. Do not introduce style-heavy decor, plants, artwork, rugs, people, text, or watermark. " +
                "Photorealistic, natural room lighting, hyper-detailed, architectural photography, 8k.";
     }
 

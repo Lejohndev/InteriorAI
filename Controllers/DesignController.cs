@@ -39,7 +39,8 @@ public class DesignController : ControllerBase
                 request.StyleId,
                 request.StyleName,
                 request.Style,
-                request.RoomType);
+                request.RoomType,
+                request.FeatureId);
 
             return Ok(new DesignResponse
             {
@@ -185,7 +186,8 @@ public class DesignController : ControllerBase
                 request.StyleId,
                 request.StyleName,
                 request.Style,
-                request.RoomType);
+                request.RoomType,
+                request.FeatureId);
 
             return Ok(new
             {
