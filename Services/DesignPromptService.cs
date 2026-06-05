@@ -58,8 +58,15 @@ public class DesignPromptService : IDesignPromptService
         string? featureId = null)
     {
         var styleKey = FirstNotEmpty(styleName, legacyStyle);
+        var normalizedFeatureId = NormalizeFeatureId(featureId);
+        var roomTypeKey = NormalizeRoomTypeKey(roomType);
         if (styleId == null && string.IsNullOrWhiteSpace(styleKey))
         {
+            if (normalizedFeatureId == "remove_furniture")
+            {
+                return BuildRemoveFurniturePrompt(GetFallbackRoomTypeName(roomTypeKey));
+            }
+
             throw new ArgumentException("Design styleId or styleName is required.");
         }
 
@@ -70,8 +77,6 @@ public class DesignPromptService : IDesignPromptService
             throw new KeyNotFoundException($"Design style '{requestedStyle}' was not found. Use an existing styleId or styleName.");
         }
 
-        var normalizedFeatureId = NormalizeFeatureId(featureId);
-        var roomTypeKey = NormalizeRoomTypeKey(roomType);
         if (!string.IsNullOrWhiteSpace(roomTypeKey))
         {
             var roomPrompt = await _context.RoomStylePrompts
@@ -258,6 +263,7 @@ public class DesignPromptService : IDesignPromptService
                      "Realistically reconstruct any hidden floor, wall, baseboard, ceiling, shadow, and surface areas that were covered by removed objects. " +
                      "Keep the result as a clean empty room with natural room lighting and believable material continuity. " +
                      "Do not add new furniture. Do not add decorative styling. Do not introduce style-heavy decor, plants, artwork, rugs, people, text, or watermark. " +
+                     "Avoid distorted architecture, warped walls, broken windows, unrealistic reconstruction, people, text, and watermark. " +
                      "Photorealistic, natural room lighting, hyper-detailed, architectural photography, 8k.";
 
         return AppendAvoidClause(prompt, style?.SpecificNegative);
