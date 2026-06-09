@@ -40,7 +40,9 @@ public class DesignController : ControllerBase
                 request.StyleName,
                 request.Style,
                 request.RoomType,
-                request.FeatureId);
+                request.FeatureId,
+                request.Model,
+                request.Resolution);
 
             return Ok(new DesignResponse
             {
@@ -82,7 +84,9 @@ public class DesignController : ControllerBase
             var design = await _designManager.CreateChatDesignAsync(
                 userId,
                 request.Image,
-                request.Prompt);
+                request.Prompt,
+                request.Model,
+                request.Resolution);
 
             return Ok(new DesignResponse
             {
@@ -187,7 +191,9 @@ public class DesignController : ControllerBase
                 request.StyleName,
                 request.Style,
                 request.RoomType,
-                request.FeatureId);
+                request.FeatureId,
+                request.Model,
+                request.Resolution);
 
             return Ok(new
             {

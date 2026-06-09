@@ -10,5 +10,9 @@ namespace InteriorAI.Models.DTOs
 
         [Required]
         public IFormFile Image { get; set; } = null!;
+
+        public string? Model { get; set; }
+
+        public string? Resolution { get; set; }
     }
 }

@@ -41,7 +41,9 @@ namespace InteriorAI.Services
             string? styleName,
             string? style,
             string? roomType,
-            string? featureId)
+            string? featureId,
+            string? model = null,
+            string? resolution = null)
         {
             if (string.IsNullOrWhiteSpace(userId))
             {
@@ -63,6 +65,8 @@ namespace InteriorAI.Services
                 UserId = userId,
                 OriginalImageUrl = originalImageUrl,
                 DesignPrompt = designPrompt,
+                Model = model,
+                Resolution = resolution,
                 Status = DesignStatuses.Pending,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
@@ -80,7 +84,9 @@ namespace InteriorAI.Services
         public async Task<DesignResult> CreateChatDesignAsync(
             string userId,
             IFormFile image,
-            string prompt)
+            string prompt,
+            string? model = null,
+            string? resolution = null)
         {
             if (string.IsNullOrWhiteSpace(userId))
             {
@@ -106,6 +112,8 @@ namespace InteriorAI.Services
                 UserId = userId,
                 OriginalImageUrl = originalImageUrl,
                 DesignPrompt = prompt,
+                Model = model,
+                Resolution = resolution,
                 Status = DesignStatuses.Pending,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
@@ -141,12 +149,14 @@ namespace InteriorAI.Services
             string? styleName,
             string? style,
             string? roomType = null,
-            string? featureId = null)
+            string? featureId = null,
+            string? model = null,
+            string? resolution = null)
         {
             var designPrompt = await _promptService.GetConfiguredPromptAsync(styleId, styleName, style, roomType, featureId);
             var imageBytes = await ReadAndValidateImageAsync(image);
             var originalImageUrl = await _imageStorageService.UploadImageAsync(Convert.ToBase64String(imageBytes));
-            var temporaryDesignedImageUrl = await _imageGenerationService.GenerateImageFromUrlAsync(designPrompt, originalImageUrl);
+            var temporaryDesignedImageUrl = await _imageGenerationService.GenerateImageFromUrlAsync(designPrompt, originalImageUrl, model, resolution);
             var designedImageUrl = await _imageStorageService.UploadImageFromUrlAsync(temporaryDesignedImageUrl);
 
             return (originalImageUrl, designedImageUrl, designPrompt);
@@ -210,7 +220,9 @@ namespace InteriorAI.Services
 
                 var temporaryDesignedImageUrl = await _imageGenerationService.GenerateImageFromUrlAsync(
                     design.DesignPrompt,
-                    design.OriginalImageUrl);
+                    design.OriginalImageUrl,
+                    design.Model,
+                    design.Resolution);
                 var designedImageUrl = await _imageStorageService.UploadImageFromUrlAsync(temporaryDesignedImageUrl);
 
                 design.DesignedImageUrl = designedImageUrl;

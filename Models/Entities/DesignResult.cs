@@ -19,6 +19,12 @@ namespace InteriorAI.Domain.Entities
 
         public string? DesignPrompt { get; set; }
 
+        [MaxLength(64)]
+        public string? Model { get; set; }
+
+        [MaxLength(64)]
+        public string? Resolution { get; set; }
+
         [Required]
         [MaxLength(32)]
         public string Status { get; set; } = DesignStatuses.Pending;

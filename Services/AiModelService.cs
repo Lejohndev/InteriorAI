@@ -7,7 +7,7 @@ namespace InteriorAI.Services;
 
 public interface IImageGenerationService
 {
-    Task<string> GenerateImageFromUrlAsync(string prompt, string imageUrl);
+    Task<string> GenerateImageFromUrlAsync(string prompt, string imageUrl, string? model = null, string? resolution = null);
 }
 
 public class NanoBananaImageGenerationService : IImageGenerationService
@@ -29,7 +29,7 @@ public class NanoBananaImageGenerationService : IImageGenerationService
         _logger = logger;
     }
 
-    public async Task<string> GenerateImageFromUrlAsync(string prompt, string imageUrl)
+    public async Task<string> GenerateImageFromUrlAsync(string prompt, string imageUrl, string? model = null, string? resolution = null)
     {
         ValidateInput(prompt, imageUrl);
 
@@ -39,13 +39,16 @@ public class NanoBananaImageGenerationService : IImageGenerationService
             throw new InvalidOperationException("NanoBanana API Key is missing.");
         }
 
-        var generateUrl = "https://api.nanobananaapi.ai/api/v1/nanobanana/generate-2";
+        var endpointModel = string.IsNullOrWhiteSpace(model) ? "generate-2" : model;
+        var generateUrl = $"https://api.nanobananaapi.ai/api/v1/nanobanana/{endpointModel}";
+        var res = string.IsNullOrWhiteSpace(resolution) ? "1K" : resolution;
+
         var payload = new
         {
             prompt = prompt,
             imageUrls = new[] { imageUrl },
             aspectRatio = "auto",
-            resolution = "1K",
+            resolution = res,
             outputFormat = "jpg"
         };
 
