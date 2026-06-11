@@ -101,6 +101,11 @@ public class DesignPromptService : IDesignPromptService
                 roomTypeKey);
         }
 
+        if (normalizedFeatureId == "furnish_empty_room")
+        {
+            return BuildFurnishEmptyRoomStyleOnlyPrompt(styleConfig, GetFallbackRoomTypeName(roomTypeKey));
+        }
+
         if (normalizedFeatureId == "remove_furniture")
         {
             return BuildRemoveFurniturePrompt(GetFallbackRoomTypeName(roomTypeKey), styleConfig);
@@ -224,10 +229,14 @@ public class DesignPromptService : IDesignPromptService
 
         var prompt = $"A photorealistic architectural interior photography of a {roomPrompt.RoomTypeName}. " +
                      $"{styleBase} completely redesigned in a residential {styleCore}. " +
+                     "Treat the uploaded image as an existing furnished or partially furnished room when furniture is present. " +
+                     "Preserve the original architecture, camera angle, walls, floor, ceiling, windows, doors, built-in fixtures, and room geometry. " +
+                     "Update, replace, restyle, or improve existing furniture, materials, colors, lighting, and decor according to the selected room type and style instead of adding duplicate furniture on top of existing furniture. " +
+                     "If the room is mostly empty, add only suitable missing furnishings while preserving a balanced layout. " +
                      $"The scene features {roomPrompt.Lighting}. " +
                      $"Materials strictly limited to {roomPrompt.Material}. " +
                      $"Color grading follows a strict rule: {roomPrompt.Color}. " +
-                     $"Key elements include {roomPrompt.Furniture}. " +
+                     $"Use these furniture/decor elements as redesign targets, replacing or restyling existing items where appropriate: {roomPrompt.Furniture}. " +
                      $"The atmosphere is {roomPrompt.Atmosphere}. " +
                      "Photorealistic, natural room lighting, hyper-detailed, architectural photography, 8k.";
 
@@ -253,6 +262,29 @@ public class DesignPromptService : IDesignPromptService
                      "Photorealistic, natural room lighting, hyper-detailed, architectural photography, 8k.";
 
         return AppendAvoidClause(prompt, style.SpecificNegative);
+    }
+
+    private static string BuildFurnishEmptyRoomStyleOnlyPrompt(StyleAesthetic style, string roomTypeName)
+    {
+        var styleCore = style.StyleName switch
+        {
+            "Japandi" => "Japandi (Japanese-Scandinavian fusion)",
+            "Tropical" => "Tropical",
+            _ => style.CoreAesthetic
+        };
+
+        var promptBuilder = new StringBuilder();
+        promptBuilder.Append($"A photorealistic architectural interior photography of an empty or mostly empty {roomTypeName}. ");
+        promptBuilder.Append($"Furnish the space from scratch as a residential {styleCore} while preserving the original architecture, camera angle, walls, floor, ceiling, windows, doors, built-in fixtures, and room geometry. ");
+        promptBuilder.Append("Add suitable furniture and decor according to the selected style. ");
+        AppendLineIfPresent(promptBuilder, style.CoreAesthetic);
+        AppendListIfPresent(promptBuilder, "Lighting options", style.LightingOptions);
+        AppendListIfPresent(promptBuilder, "Material options", style.MaterialOptions);
+        AppendListIfPresent(promptBuilder, "Color rule options", style.ColorRuleOptions);
+        AppendListIfPresent(promptBuilder, "Atmosphere options", style.AtmosphereOptions);
+        AppendLineIfPresent(promptBuilder, style.TechnicalSpecs);
+
+        return AppendAvoidClause(promptBuilder.ToString(), style.SpecificNegative);
     }
 
     private static string BuildRemoveFurniturePrompt(string roomTypeName, StyleAesthetic? style = null)
