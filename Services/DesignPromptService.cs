@@ -42,11 +42,7 @@ public class DesignPromptService : IDesignPromptService
             {
                 StyleId = style.StyleID,
                 StyleName = style.StyleName,
-                CoreAesthetic = style.CoreAesthetic,
-                LightingOptions = style.LightingOptions,
-                MaterialOptions = style.MaterialOptions,
-                ColorRuleOptions = style.ColorRuleOptions,
-                AtmosphereOptions = style.AtmosphereOptions
+                CoreAesthetic = style.CoreAesthetic
             })
             .ToListAsync();
     }
@@ -259,10 +255,6 @@ public class DesignPromptService : IDesignPromptService
         var promptBuilder = new StringBuilder();
 
         AppendLineIfPresent(promptBuilder, style.CoreAesthetic);
-        AppendListIfPresent(promptBuilder, "Lighting options", style.LightingOptions);
-        AppendListIfPresent(promptBuilder, "Material options", style.MaterialOptions);
-        AppendListIfPresent(promptBuilder, "Color rule options", style.ColorRuleOptions);
-        AppendListIfPresent(promptBuilder, "Atmosphere options", style.AtmosphereOptions);
         AppendLineIfPresent(promptBuilder, style.TechnicalSpecs);
 
         return promptBuilder.ToString().Trim();

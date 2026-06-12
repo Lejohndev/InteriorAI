@@ -13,14 +13,12 @@ public class DesignStudioSeeder
         _context = context;
         _logger = logger;
     }
-
     public async Task EnsureSeedDataAsync()
     {
         await EnsureStylesAsync();
         await EnsureRoomStylePromptsAsync();
         _logger.LogInformation("Ensured default design prompt styles and room-specific prompts.");
     }
-
     public async Task EnsureStylesAsync()
     {
         foreach (var seed in DesignStyleSeedData.All)
@@ -37,7 +35,6 @@ public class DesignStudioSeeder
                 ApplyStyleDefaults(existingStyle, seed);
             }
         }
-
         await _context.SaveChangesAsync();
     }
 
@@ -108,10 +105,6 @@ public class DesignStudioSeeder
         {
             StyleName = seed.StyleName,
             CoreAesthetic = seed.CoreAesthetic,
-            LightingOptions = seed.LightingOptions.ToList(),
-            MaterialOptions = seed.MaterialOptions.ToList(),
-            ColorRuleOptions = seed.ColorRuleOptions.ToList(),
-            AtmosphereOptions = seed.AtmosphereOptions.ToList(),
             TechnicalSpecs = seed.TechnicalSpecs
         };
     }
@@ -119,10 +112,6 @@ public class DesignStudioSeeder
     private static void ApplyStyleDefaults(StyleAesthetic target, StyleAestheticSeed source)
     {
         target.CoreAesthetic = source.CoreAesthetic;
-        target.LightingOptions = source.LightingOptions.ToList();
-        target.MaterialOptions = source.MaterialOptions.ToList();
-        target.ColorRuleOptions = source.ColorRuleOptions.ToList();
-        target.AtmosphereOptions = source.AtmosphereOptions.ToList();
         target.TechnicalSpecs = source.TechnicalSpecs;
     }
 }

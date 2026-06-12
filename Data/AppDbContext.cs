@@ -18,39 +18,9 @@ namespace InteriorAI.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Cấu hình JsonSerializerOptions 
-            var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-
-            // ==========================================
-       
-            
             modelBuilder.Entity<StyleAesthetic>(entity =>
             {
                 entity.HasKey(e => e.StyleID);
-
-                // LightingOptions
-                entity.Property(e => e.LightingOptions)
-                    .HasConversion(
-                        v => JsonSerializer.Serialize(v, jsonOptions),
-                        v => JsonSerializer.Deserialize<List<string>>(v, jsonOptions) ?? new List<string>()); // Sử dụng ?? để đảm bảo không trả về null
-
-                // MaterialOptions
-                entity.Property(e => e.MaterialOptions)
-                    .HasConversion(
-                        v => JsonSerializer.Serialize(v, jsonOptions),
-                        v => JsonSerializer.Deserialize<List<string>>(v, jsonOptions) ?? new List<string>());
-
-                // ColorRuleOptions
-                entity.Property(e => e.ColorRuleOptions)
-                    .HasConversion(
-                        v => JsonSerializer.Serialize(v, jsonOptions),
-                        v => JsonSerializer.Deserialize<List<string>>(v, jsonOptions) ?? new List<string>());
-
-                // AtmosphereOptions
-                entity.Property(e => e.AtmosphereOptions)
-                    .HasConversion(
-                        v => JsonSerializer.Serialize(v, jsonOptions),
-                        v => JsonSerializer.Deserialize<List<string>>(v, jsonOptions) ?? new List<string>());
             });
 
             
