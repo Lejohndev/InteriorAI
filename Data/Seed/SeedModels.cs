@@ -3,12 +3,10 @@ namespace InteriorAI.Data.Seed;
 internal sealed record StyleAestheticSeed(
     string StyleName,
     string CoreAesthetic,
-    string BaseStructuralPrompt,
     IReadOnlyList<string> LightingOptions,
     IReadOnlyList<string> MaterialOptions,
     IReadOnlyList<string> ColorRuleOptions,
     IReadOnlyList<string> AtmosphereOptions,
-    string SpecificNegative,
     string TechnicalSpecs);
 
 internal sealed record RoomStylePromptSeed(
@@ -20,4 +18,7 @@ internal sealed record RoomStylePromptSeed(
     string Material,
     string Color,
     string Furniture,
-    string Atmosphere);
+    string Atmosphere,
+    string BaseStructuralPrompt,
+    string PromptTemplate,
+    string SpecificNegative);

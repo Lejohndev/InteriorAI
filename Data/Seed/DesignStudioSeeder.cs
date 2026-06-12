@@ -77,6 +77,9 @@ public class DesignStudioSeeder
                     Color = seed.Color,
                     Furniture = seed.Furniture,
                     Atmosphere = seed.Atmosphere,
+                    BaseStructuralPrompt = seed.BaseStructuralPrompt,
+                    PromptTemplate = seed.PromptTemplate,
+                    SpecificNegative = seed.SpecificNegative,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 });
@@ -90,6 +93,9 @@ public class DesignStudioSeeder
             existingPrompt.Color = seed.Color;
             existingPrompt.Furniture = seed.Furniture;
             existingPrompt.Atmosphere = seed.Atmosphere;
+            existingPrompt.BaseStructuralPrompt = seed.BaseStructuralPrompt;
+            existingPrompt.PromptTemplate = seed.PromptTemplate;
+            existingPrompt.SpecificNegative = seed.SpecificNegative;
             existingPrompt.UpdatedAt = DateTime.UtcNow;
         }
 
@@ -102,12 +108,10 @@ public class DesignStudioSeeder
         {
             StyleName = seed.StyleName,
             CoreAesthetic = seed.CoreAesthetic,
-            BaseStructuralPrompt = seed.BaseStructuralPrompt,
             LightingOptions = seed.LightingOptions.ToList(),
             MaterialOptions = seed.MaterialOptions.ToList(),
             ColorRuleOptions = seed.ColorRuleOptions.ToList(),
             AtmosphereOptions = seed.AtmosphereOptions.ToList(),
-            SpecificNegative = seed.SpecificNegative,
             TechnicalSpecs = seed.TechnicalSpecs
         };
     }
@@ -115,12 +119,10 @@ public class DesignStudioSeeder
     private static void ApplyStyleDefaults(StyleAesthetic target, StyleAestheticSeed source)
     {
         target.CoreAesthetic = source.CoreAesthetic;
-        target.BaseStructuralPrompt = source.BaseStructuralPrompt;
         target.LightingOptions = source.LightingOptions.ToList();
         target.MaterialOptions = source.MaterialOptions.ToList();
         target.ColorRuleOptions = source.ColorRuleOptions.ToList();
         target.AtmosphereOptions = source.AtmosphereOptions.ToList();
-        target.SpecificNegative = source.SpecificNegative;
         target.TechnicalSpecs = source.TechnicalSpecs;
     }
 }

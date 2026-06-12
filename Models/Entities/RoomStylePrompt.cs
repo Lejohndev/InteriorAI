@@ -12,6 +12,9 @@ namespace InteriorAI.Domain.Entities
         public string Color { get; set; } = string.Empty;
         public string Furniture { get; set; } = string.Empty;
         public string Atmosphere { get; set; } = string.Empty;
+        public string BaseStructuralPrompt { get; set; } = string.Empty;
+        public string PromptTemplate { get; set; } = string.Empty;
+        public string SpecificNegative { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
 
