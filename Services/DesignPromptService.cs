@@ -84,12 +84,17 @@ public class DesignPromptService : IDesignPromptService
 
             if (roomPrompt != null)
             {
-                return normalizedFeatureId switch
+                var generatedPrompt = normalizedFeatureId switch
                 {
                     "furnish_empty_room" => BuildFurnishEmptyRoomPrompt(styleConfig, roomPrompt),
                     "remove_furniture" => BuildRemoveFurniturePrompt(roomPrompt.RoomTypeName, roomPrompt),
                     _ => BuildRoomPrompt(styleConfig, roomPrompt)
                 };
+
+                _logger.LogInformation("Generated prompt for Room: {RoomType}, Style: {StyleName}. Content: {Prompt}", 
+                    roomPrompt.RoomTypeName, styleConfig.StyleName, generatedPrompt);
+
+                return generatedPrompt;
             }
 
             _logger.LogInformation(
@@ -100,7 +105,9 @@ public class DesignPromptService : IDesignPromptService
 
         if (normalizedFeatureId == "remove_furniture")
         {
-            return BuildRemoveFurniturePrompt(GetFallbackRoomTypeName(roomTypeKey));
+            var removePrompt = BuildRemoveFurniturePrompt(GetFallbackRoomTypeName(roomTypeKey));
+            _logger.LogInformation("Generated fallback remove_furniture prompt. Content: {Prompt}", removePrompt);
+            return removePrompt;
         }
 
         var prompt = BuildPrompt(styleConfig);
@@ -109,6 +116,7 @@ public class DesignPromptService : IDesignPromptService
             throw new InvalidOperationException($"Design style '{styleConfig.StyleName}' does not have a configured prompt.");
         }
 
+        _logger.LogInformation("Generated style fallback prompt for Style: {StyleName}. Content: {Prompt}", styleConfig.StyleName, prompt);
         return prompt;
     }
 
