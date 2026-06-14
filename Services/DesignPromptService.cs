@@ -225,21 +225,8 @@ public class DesignPromptService : IDesignPromptService
 
     private static string BuildFurnishEmptyRoomPrompt(StyleAesthetic style, RoomStylePrompt roomPrompt)
     {
-        var styleCore = style.StyleName switch
-        {
-            "Japandi" => "Japandi (Japanese-Scandinavian fusion)",
-            "Tropical" => "Tropical",
-            _ => style.CoreAesthetic
-        };
-
-        var prompt = $"A photorealistic architectural interior photography of an empty or mostly empty {roomPrompt.RoomTypeName}. " +
-                     $"Furnish the space from scratch as a residential {styleCore} while preserving the original architecture, camera angle, walls, floor, ceiling, windows, doors, and room geometry. " +
-                     $"The scene features {roomPrompt.Lighting}. " +
-                     $"Materials strictly limited to {roomPrompt.Material}. " +
-                     $"Color grading follows a strict rule: {roomPrompt.Color}. " +
-                     $"Add suitable furniture and decor for this room type, including {roomPrompt.Furniture}. " +
-                     $"The atmosphere is {roomPrompt.Atmosphere}. " +
-                     "Photorealistic, natural room lighting, hyper-detailed, architectural photography, 8k.";
+        var basePrompt = Smart.Format(roomPrompt.PromptTemplate, roomPrompt);
+        var prompt = $"Remove all existing furniture and decor to create a completely empty room, then design and furnish it from scratch. {basePrompt}";
 
         return AppendAvoidClause(prompt, roomPrompt.SpecificNegative);
     }
