@@ -30,6 +30,7 @@ internal static class DesignStyleSeedData
             new[] { "monochromatic warm neutrals, ivory white, champagne beige, soft cream, pale taupe, light greige, and subtle metallic gold accents only" },
             new[] { "elegant, bright, tranquil, sophisticated, upscale, hotel-inspired, and penthouse-inspired with a strong sense of openness, comfort, and refinement" },
             "Ultra-realistic luxury interior photography, architectural digest style, cinematic natural lighting, realistic reflections, global illumination, ray tracing, physically based rendering, physically accurate materials, realistic shadows, depth of field, ultra-detailed textures, professional HDR photography, wide-angle lens, magazine-quality composition, 8K resolution, masterpiece quality."),
+
         new StyleAestheticSeed(
             "Industrial",
             "Modern residential industrial loft aesthetic",
@@ -37,11 +38,28 @@ internal static class DesignStyleSeedData
             new[] { "exposed red brick", "matte black wood", "stainless steel", "distressed leather", "reclaimed rough wood", "matte dark charcoal walls" },
             new[] { "50% matte black, 30% rustic brick red, 20% warm wood", "60% dark charcoal, 30% warm cognac leather, 10% subtle brass" },
             new[] { "moody, bold, and highly textured", "raw, masculine, and edgy", "urban, rugged, and historic" },
-            "Photorealistic, natural room lighting, hyper-detailed, architectural photography, 8k.")
+            "Photorealistic, natural room lighting, hyper-detailed, architectural photography, 8k."),
+
+        new StyleAestheticSeed(
+            "Neoclassic",
+            "Refined residential Neoclassic style",
+            new[] { "soft ambient spring morning light with warm shadows", "bright airy summer daylight", "romantic autumn evening lighting" },
+            new[] { "polished marble", "painted white wood moldings", "premium velvet", "chevron oak wood flooring", "brushed gold hardware" },
+            new[] { "60% creamy whites", "30% champagne and taupe", "10% dusty rose", "10% brushed gold and brass metallic accents" },
+            new[] { "elegant", "romantic", "luxurious", "majestic", "refined" },
+            "Ultra-realistic architectural photography, luxury interior magazine quality, HDR rendering, realistic global illumination, physically based materials, ultra-detailed textures, soft shadows, realistic reflections, 8K resolution."),
+
+        new StyleAestheticSeed(
+            "Scandinavian",
+            "Cozy, 'Hygge'-inspired residential Scandinavian style",
+            new[] { "abundant bright natural daylight", "soft warm indoor lighting against a cold window view", "diffused overcast daylight" },
+            new[] { "light pine wood", "birch wood veneer", "chunky knit wool", "matte white surfaces", "boucle fabric" },
+            new[] { "70% crisp white", "20% light wood", "10% pastel accents", "60% warm off-white" },
+            new[] { "cozy", "hygge", "inviting", "bright", "functional", "serene" },
+            "Ultra-realistic architectural photography, luxury interior magazine quality, HDR rendering, realistic global illumination, physically based materials, ultra-detailed textures, soft shadows, realistic reflections, 8K resolution.")
     };
 
     public static IReadOnlyList<string> SupportedStyleNames { get; } = All
         .Select(style => style.StyleName)
         .ToArray();
 }
-
