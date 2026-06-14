@@ -39,7 +39,7 @@ public class NanoBananaImageGenerationService : IImageGenerationService
             throw new InvalidOperationException("NanoBanana API Key is missing.");
         }
 
-        var endpointModel = string.IsNullOrWhiteSpace(model) ? "generate-2" : model;
+        var endpointModel = string.IsNullOrWhiteSpace(model) ? "generate-pro" : model;
         var generateUrl = $"https://api.nanobananaapi.ai/api/v1/nanobanana/{endpointModel}";
         var res = string.IsNullOrWhiteSpace(resolution) ? "1K" : resolution;
 
