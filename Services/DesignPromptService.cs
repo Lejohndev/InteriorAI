@@ -225,8 +225,13 @@ public class DesignPromptService : IDesignPromptService
 
     private static string BuildFurnishEmptyRoomPrompt(StyleAesthetic style, RoomStylePrompt roomPrompt)
     {
+        var clearRoomPrompt = BuildRemoveFurniturePrompt(roomPrompt.RoomTypeName, null);
+        
+        // Build the base room prompt just like BuildRoomPrompt does, but without the avoid clause yet
         var basePrompt = Smart.Format(roomPrompt.PromptTemplate, roomPrompt);
-        var prompt = $"Remove all existing furniture and decor to create a completely empty room, then design and furnish it from scratch. {basePrompt}";
+        
+        // Combine them: first clear the room, then apply the new design
+        var prompt = $"{clearRoomPrompt} Now, taking this empty room as a blank canvas, design and furnish it from scratch. {basePrompt}";
 
         return AppendAvoidClause(prompt, roomPrompt.SpecificNegative);
     }
