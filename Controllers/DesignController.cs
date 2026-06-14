@@ -180,7 +180,15 @@ public class DesignController : ControllerBase
 
         if (request.StyleId == null && string.IsNullOrWhiteSpace(request.StyleName) && string.IsNullOrWhiteSpace(request.Style))
         {
-            return BadRequest("Please specify a design styleId or styleName.");
+            var isRemoveFurniture = !string.IsNullOrWhiteSpace(request.FeatureId) &&
+                (request.FeatureId.Contains("remove_furniture", StringComparison.OrdinalIgnoreCase) ||
+                 request.FeatureId.Contains("clear_room", StringComparison.OrdinalIgnoreCase) ||
+                 request.FeatureId.Contains("empty_existing_room", StringComparison.OrdinalIgnoreCase));
+                 
+            if (!isRemoveFurniture)
+            {
+                return BadRequest("Please specify a design styleId or styleName.");
+            }
         }
 
         try
