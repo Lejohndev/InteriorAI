@@ -41,7 +41,7 @@ public class NanoBananaImageGenerationService : IImageGenerationService
 
         var endpointModel = string.IsNullOrWhiteSpace(model) ? "generate-pro" : model;
         var generateUrl = $"https://api.nanobananaapi.ai/api/v1/nanobanana/{endpointModel}";
-        var res = string.IsNullOrWhiteSpace(resolution) ? "1K" : resolution;
+        var res = string.IsNullOrWhiteSpace(resolution) ? "4K" : resolution;
 
         var payload = new
         {
